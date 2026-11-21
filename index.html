@@ -1,0 +1,1119 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Inhold</title>
+<style>
+/*
+Inhold Pixel is a subset of GNU Unifont 17.0.04.
+https://www.unifoundry.com/unifont/index.html
+Copyright © 1998-2026 Roman Czyborra, Paul Hardy, Qianqian Fang, Andrew Miller, Johnnie Weaver, David Corbett, Ælla Chiana Moskopp, Rebecca Bettencourt, Ho-Seok Ee, et al.
+
+The SIL Open Font License version 1.1 is copied below, and is also
+available with a FAQ at http://scripts.sil.org/OFL.
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded, 
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION & CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+*/
+@font-face {
+  font-family: "Inhold Pixel";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("data:font/woff;base64,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") format("woff");
+}
+:root{font-family:"Inhold Pixel","Microsoft YaHei",monospace;color:#303030;background:var(--surround);--ink:#303030;--surround:#e7e7e7;--active-side:#f0f0f0;--paper:#fff;--red:#f00;--muted:#595959}
+*{box-sizing:border-box}body{margin:0}button,canvas,dialog{border:0;outline:none}button,canvas{-webkit-tap-highlight-color:transparent}button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}button:disabled{opacity:.42;cursor:default}[hidden]{display:none!important}
+#frame{position:relative;height:100dvh;width:100vw;overflow:hidden;--left-side:var(--surround);--right-side:var(--surround);--arena-end:calc(var(--arena-start,50%) + var(--arena-w,0px));background:linear-gradient(to right,var(--left-side) var(--arena-start,50%),var(--surround) var(--arena-start,50%) var(--arena-end),var(--right-side) var(--arena-end))}
+#frame[data-mode="card"]{--left-side:var(--active-side)}#frame[data-mode="enemy"]{--right-side:var(--active-side)}#sheet{position:absolute;left:var(--board-left);top:var(--board-top);width:var(--screen-w);height:var(--screen-h);container-type:inline-size}
+#frame[data-phase="reward"]{background:var(--surround)}
+#board{width:100%;height:100%;display:block;touch-action:none}
+.anchor{position:absolute}#hud{z-index:1;top:max(8px,env(safe-area-inset-top));left:calc(var(--arena-start,50%) + var(--arena-w,0px) / 2);transform:translateX(-50%);width:min(calc(100% - 20px),max(264px,var(--arena-w)));display:grid;gap:7px;pointer-events:none}
+.topbar{display:flex;justify-content:space-between;align-items:baseline;gap:12px}.brand{font-size:32px;font-weight:400;line-height:1;color:#292929}
+#utility{display:flex;align-items:center;gap:clamp(6px,1vw,14px);pointer-events:auto}
+.flat{padding:4px 2px;background:transparent;color:var(--muted);font-size:16px;white-space:nowrap}.flat:hover{color:var(--ink);text-decoration:underline;text-underline-offset:4px}
+#metrics{display:grid;grid-template-columns:1fr auto 1fr;align-items:baseline;gap:4px}
+.stat{min-width:0;font-variant-numeric:tabular-nums;font-size:16px;line-height:1.1;white-space:nowrap;color:#555}
+#life{color:#644646}#life.low{color:#b10000;font-weight:650}
+#usage{text-align:right}
+#footer{top:var(--settle-top);left:var(--arena-left);width:var(--arena-w);text-align:center;pointer-events:none}
+.action{background:#333;color:#fff;border-radius:2px;padding:9px 20px;font-size:13px}.action:hover:not(:disabled){background:#505050}.action:active:not(:disabled){transform:translateY(1px)}
+#settle,#advance{display:block;width:var(--settle-side);height:var(--settle-side);margin:0 auto;padding:0;border-radius:0;font-size:16px;line-height:1;pointer-events:auto}
+#advance,#frame[data-phase="reward"] #settle{display:none}#frame[data-phase="reward"] #advance{display:block}
+#advance{white-space:pre-line;line-height:1.1}
+#settle:active:not(:disabled),#advance:active:not(:disabled){transform:none}
+#hint{margin:clamp(5px,1cqw,12px) 0 0;color:var(--muted);font-size:clamp(8px,.9cqw,12px)}
+#hint:empty{margin:0}
+#frame[data-phase="reward"] #hint{position:relative;left:50%;transform:translateX(-50%);width:min(320px,calc(100vw - 20px));font-size:12px;line-height:1.4}
+dialog{background:var(--surround);color:var(--ink);padding:clamp(15px,3vw,27px);width:min(760px,94vw);max-height:95dvh;overflow:auto}
+dialog::backdrop{background:#3336}h1,h2,p{margin:0}h1,h2{font-weight:550;line-height:1.2}h2{font-size:24px}dialog p{color:var(--muted);font-size:13px;line-height:1.55}dialog p+p{margin-top:7px}.dialog-body{margin:14px 0 20px}.actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap}
+.quiet{padding:8px 12px;background:transparent;border-radius:2px;font-size:13px}.quiet:hover:not(:disabled){background:#eee}
+button:focus-visible{text-decoration:underline;text-underline-offset:4px}
+#upgrade{display:none;position:absolute;top:var(--fragments-top);left:var(--arena-start);width:var(--arena-w);height:var(--fragment-side);place-items:center;pointer-events:none}
+#frame[data-phase="reward"] #upgrade{display:grid}
+#frame[data-fragments="side"] #upgrade{top:var(--arena-top);left:var(--arena-end);height:var(--arena-w)}
+.options{display:flex;width:100%;justify-content:center}
+#frame[data-fragments="side"] .options{width:calc(3*var(--fragment-side));flex-wrap:wrap}
+.choice{display:block;flex:0 0 var(--fragment-side);width:var(--fragment-side);height:var(--fragment-side);min-width:0;background:transparent;padding:0;pointer-events:auto;cursor:grab;touch-action:none}
+#frame.dragging-upgrade,#frame.dragging-upgrade .choice{cursor:grabbing}
+.choice:hover{background:#ddd}.choice.used{background:#d0d0d0}
+.choice canvas{display:block;width:100%;min-width:0;aspect-ratio:1;image-rendering:pixelated}
+@media(max-width:620px){.actions{gap:5px}.action,.quiet{padding:6px 10px}}
+@media(max-height:310px){#hud{gap:3px;top:4px}#utility .flat{padding-block:0}}
+@media(max-width:300px),(max-height:310px){.brand{font-size:16px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+<body>
+<div id="frame" data-phase="battle">
+ <header id="hud" class="anchor">
+  <div class="topbar"><h1 class="brand">Inhold</h1><div id="utility"><button id="help" class="flat" data-text="help">玩法</button><button id="reset" class="flat" data-text="restart">重开</button><button id="language" class="flat" data-text="language" data-label="switchLanguage">EN</button></div></div>
+  <section id="metrics" data-label="status">
+   <output class="stat" id="level" data-label="round" data-title="round"></output>
+   <output class="stat" id="life" data-label="life" data-title="life"></output>
+   <output class="stat" id="usage" data-label="deployment" data-title="deploymentTitle"></output>
+  </section>
+ </header>
+ <main id="sheet" aria-label="Inhold">
+  <canvas id="board" data-label="battlefield" tabindex="0"></canvas>
+  <div id="footer" class="anchor">
+   <button class="action" id="settle" data-text="settle" data-label="settleRound">结算</button>
+   <button class="action" id="advance" data-text="advance" data-label="advanceRound">确认升级</button>
+   <p id="hint" aria-live="polite"></p>
+  </div>
+ </main>
+ <section id="upgrade" data-label="upgrade">
+  <div class="options" id="fragments" role="group" data-label="fragments"></div>
+ </section>
+</div>
+<dialog id="info" aria-labelledby="info-title"><h2 id="info-title"></h2><div id="info-body" class="dialog-body"></div><div class="actions" id="info-actions"></div></dialog>
+<script>
+'use strict';
+const key = (x, y) => x + ',' + y;
+function normalize(cells) {
+  if (!cells.length) return [];
+  let left = Infinity, top = Infinity;
+  const unique = new Map();
+  for (const [x, y] of cells) {
+    left = Math.min(left, x);
+    top = Math.min(top, y);
+    unique.set(key(x, y), [x, y]);
+  }
+  return [...unique.values()].map(([x, y]) => [x - left, y - top])
+    .sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+}
+
+function bounds(cells) {
+  if (!cells.length) return { w: 0, h: 0 };
+  let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
+  for (const [x, y] of cells) {
+    left = Math.min(left, x); right = Math.max(right, x);
+    top = Math.min(top, y); bottom = Math.max(bottom, y);
+  }
+  return { w: right - left + 1, h: bottom - top + 1 };
+}
+
+function seedValue(seed) {
+  if (typeof seed === 'number' && Number.isFinite(seed)) return seed >>> 0;
+  if (seed !== undefined && seed !== null) {
+    let hash = 2166136261;
+    for (const ch of String(seed)) hash = Math.imul(hash ^ ch.charCodeAt(0), 16777619);
+    return hash >>> 0;
+  }
+  if (globalThis.crypto?.getRandomValues) return globalThis.crypto.getRandomValues(new Uint32Array(1))[0];
+  return Math.floor(Math.random() * 4294967296);
+}
+
+function generator(seed, round, channel) {
+  let state = (seed ^ Math.imul(round, 0x9e3779b1) ^ Math.imul(channel, 0x85ebca6b)) >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let h = Math.imul(state ^ (state >>> 15), state | 1);
+    h ^= h + Math.imul(h ^ (h >>> 7), h | 61);
+    return ((h ^ (h >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const WIDTH = 120, HEIGHT = 80, ROUNDS = 20, HP = 100;
+const FIELD = {x:40, y:20, size:40};
+const MAX_PIECE_SPAN = 18, SLOT_ROWS = 4;
+const SLOT_TOP = Math.floor((HEIGHT-SLOT_ROWS*MAX_PIECE_SPAN)/2);
+const SLOT_INSET = Math.floor((FIELD.x-2*MAX_PIECE_SPAN)/2);
+const SETTLE_MIN_SIZE = 56, SETTLE_HINT_ROOM = 24;
+const DEMAND = [
+  12, 15, 19, 23, 28,
+  42, 46, 50, 54, 57,
+  76, 81, 86, 91, 96,
+  120, 127, 134, 141, 148
+];
+const REWARD_AREAS = [3,3,4,4,4];
+const FRAGMENT_TILE_SPAN = Math.max(...REWARD_AREAS);
+const START_CARD_AREA = 8;
+const GIFT_AREAS = {4:15, 8:24, 12:33, 16:44};
+const STEPS = [[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
+const CARDINAL = [STEPS[0], STEPS[2], STEPS[4], STEPS[6]];
+const $ = id => document.getElementById(id);
+const MESSAGES = {
+  'zh-CN': {
+    language:'EN', switchLanguage:'切换到英文', help:'玩法', restart:'重开',
+    status:'状态', round:'场次', life:'剩余生命', deployment:'出牌张数', deploymentTitle:'已用张数 / 张数上限',
+    battlefield:'防御场。点左侧选择组件，点右侧选择敌人。',
+    settle:'结算', settleRound:'结算本场',
+    upgrade:'改造组件', fragments:'新碎片', advance:'确认\n升级', advanceRound:'确认升级并进入下一场',
+    upgradeBoard:'改造。把碎片拖进方框，每框一块。',
+    rules:'通过平移，在中央区域内用黑色图形盖住尽量多的红色方块。',
+    upgradeRule:'每回合后可以为每张黑色图形增加一些方块。',
+    close:'合上', restartTitle:'重新开始', restartPrompt:'重新开始会结束当前这局。', keepPlaying:'继续本局',
+    won:'走完了二十场', lost:'生命耗尽', viewBattlefield:'查看战场', newRun:'另开一局',
+    remainingLife:n=>`最终剩余生命 ${n}。`, reachedRound:n=>`这一局打到了第 ${n} 场。`,
+    tooMany:n=>`请移出 ${n} 张组件。`, newCard:'获得新牌。',
+    fragmentLabel:used=>used?'已摆放的碎片':'碎片',
+    upgradeHint:'把碎片拖进方框，每框一块。', occupiedSlot:'这个方框已有碎片'
+  },
+  en: {
+    language:'中文', switchLanguage:'Switch to Chinese', help:'Help', restart:'Restart',
+    status:'Status', round:'Round', life:'Life remaining', deployment:'Cards played', deploymentTitle:'Cards played / card limit',
+    battlefield:'Battlefield. Select cards on the left or enemies on the right.',
+    settle:'Settle', settleRound:'Settle this round',
+    upgrade:'Upgrade cards', fragments:'Fragments', advance:'Confirm\nupgrade', advanceRound:'Confirm upgrades and continue',
+    upgradeBoard:'Upgrade. Drag one fragment into each frame.',
+    rules:'Slide the pieces so the black shapes cover as many red squares as possible in the central area.',
+    upgradeRule:'After each round, you can add squares to each black shape.',
+    close:'Close', restartTitle:'Restart run', restartPrompt:'Restarting ends the current run.', keepPlaying:'Keep playing',
+    won:'Twenty rounds cleared', lost:'Out of life', viewBattlefield:'View battlefield', newRun:'New run',
+    remainingLife:n=>`Life remaining: ${n}.`, reachedRound:n=>`You reached round ${n}.`,
+    tooMany:n=>`Move ${n} ${n===1?'card':'cards'} out of the field.`, newCard:'New card.',
+    fragmentLabel:used=>used?'Placed fragment':'Fragment',
+    upgradeHint:'Drag one fragment into each frame.',
+    occupiedSlot:'This frame already has a fragment'
+  }
+};
+let language='zh-CN';
+function message(key,...args) {
+  const text=MESSAGES[language][key];
+  return typeof text==='function' ? text(...args) : text;
+}
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const randomItem = (items, rng) => items[Math.floor(rng() * items.length)];
+const rangeInt = (a,b,rng) => a+Math.floor(rng()*(b-a+1));
+const giftSpan = round => 3 + Math.ceil((round - 1) * (MAX_PIECE_SPAN - 3) / (ROUNDS - 1));
+const deployLimit = round => 2 + Math.floor((round - 1) / 5);
+const inDefense = (x,y) => x >= FIELD.x && y >= FIELD.y && x < FIELD.x+FIELD.size && y < FIELD.y+FIELD.size;
+const weighted = (items, rng) => {
+  let value = rng()*items.reduce((sum,item) => sum+item.weight,0);
+  for (const item of items) {
+    value -= item.weight;
+    if (value < 0) return item;
+  }
+  return items.at(-1);
+};
+
+function walk(area, maxSpan, rng, branchRate, straightness, steps = STEPS) {
+  const cells = [[0,0]], occupied = new Set(['0,0']);
+  let minX=0,maxX=0,minY=0,maxY=0, direction=-1;
+  const options = ([x,y], preferred) => {
+    const result = [];
+    for (let i=0;i<steps.length;i++) {
+      const xx=x+steps[i][0], yy=y+steps[i][1], id=key(xx,yy);
+      if (occupied.has(id) || Math.max(maxX,xx)-Math.min(minX,xx)>=maxSpan ||
+          Math.max(maxY,yy)-Math.min(minY,yy)>=maxSpan) continue;
+      const diff=Math.min((i-preferred+steps.length)%steps.length,(preferred-i+steps.length)%steps.length);
+      result.push({xx,yy,id,i,weight:preferred<0 ? 1 : diff===0 ? straightness : diff===1 ? 2.1 : .6});
+    }
+    return result;
+  };
+  while (cells.length < area) {
+    const branch=rng()<branchRate;
+    let available = options(branch ? randomItem(cells,rng) : cells.at(-1),branch ? -1 : direction);
+    if (!available.length) {
+      available = cells.flatMap(cell => options(cell,-1));
+      if (!available.length) break;
+    }
+    const next=weighted(available,rng), {xx,yy,id,i}=next;
+    cells.push([xx,yy]); occupied.add(id); direction=i;
+    minX=Math.min(minX,xx); maxX=Math.max(maxX,xx);
+    minY=Math.min(minY,yy); maxY=Math.max(maxY,yy);
+  }
+  return normalize(cells);
+}
+
+function rolledShape(area,span,target,rng,split=false,material=false) {
+  let best, bestScore=Infinity;
+  for (let attempt=0;attempt<26;attempt++) {
+    const steps=material ? CARDINAL : STEPS;
+    let cells=walk(area,span,rng,.08+rng()*.36,3+rng()*9,steps);
+    if (split && area>=8) {
+      const first=rangeInt(Math.ceil(area*.42),Math.ceil(area*.63),rng);
+      const a=walk(first,span,rng,.23,6), b=walk(area-first,span,rng,.2,7);
+      const offset=bounds(a).w + rangeInt(1,4,rng);
+      const shift=rangeInt(-2,3,rng);
+      const combined=normalize(a.concat(b.map(([x,y]) => [x+offset,y+shift])));
+      const shapeBox=bounds(combined);
+      if (shapeBox.w<=span && shapeBox.h<=span) cells=combined;
+      else if (attempt<20) continue;
+    }
+    const {w,h}=bounds(cells);
+    if (cells.length!==area) continue;
+    const score=Math.abs(Math.log((area/(w*h))/target)) + rng()*.035;
+    if (score<bestScore) {best=cells;bestScore=score;}
+    if (score<.06 && attempt>=4) break;
+  }
+  return best || walk(area,span,rng,.24,5,material ? CARDINAL : STEPS);
+}
+
+function enemyGroups(round,rng,area) {
+  const min=round<=8?2:round<=15?3:4;
+  const max=round<=4?2:round<=8?3:round<=12?4:round<=16?5:6;
+  const count=rangeInt(min,max,rng);
+  const weights=Array.from({length:count},(_,i)=>.72+rng()*.8+(i===0 && rng()<.72 ? .8 : 0));
+  const sum=weights.reduce((a,b)=>a+b,0);
+  const groups=weights.map(weight=>3+Math.floor((area-count*3)*weight/sum));
+  while (groups.reduce((a,b)=>a+b,0)<area) groups[rangeInt(0,count-1,rng)]++;
+  return groups.sort((a,b)=>b-a);
+}
+
+function enemyCards(run) {
+  const rng=generator(run.seed,run.round,1);
+  const target=DEMAND[run.round-1];
+  const spread=Math.max(1,Math.round(.055*target));
+  const area=run.round===1 ? target : rangeInt(target-spread,target+spread,rng);
+  const span=Math.min(MAX_PIECE_SPAN,Math.round((run.round+4)*.8));
+  return enemyGroups(run.round,rng,area).map((size,index)=>{
+    const density=run.round<=4 ? .48+rng()*.27 : rng()<.14 ? .46+rng()*.13 : .21+rng()*.13;
+    return {id:'e'+index,slot:index,cells:rolledShape(size,span,density,rng,run.round>5 && rng()<.3)};
+  });
+}
+
+const fragmentsBySize=new Map();
+function fragmentCatalog(size) {
+  if (fragmentsBySize.has(size)) return fragmentsBySize.get(size);
+  if (size===1) return [[[0,0]]];
+  const unique=new Map();
+  for (const shape of fragmentCatalog(size-1)) {
+    const occupied=new Set(shape.map(([x,y])=>key(x,y)));
+    for (const [x,y] of shape) for (const [dx,dy] of CARDINAL) {
+      if (occupied.has(key(x+dx,y+dy))) continue;
+      const cells=normalize([...shape,[x+dx,y+dy]]);
+      const {w,h}=bounds(cells);
+      if (w<=5 && h<=5) unique.set(cells.map(p=>key(...p)).join(';'),cells);
+    }
+  }
+  const shapes=[...unique.values()];
+  fragmentsBySize.set(size,shapes);
+  return shapes;
+}
+
+function rewards(run) {
+  const rng=generator(run.seed,run.round,2);
+  const tier=Math.floor((run.round-1)/4);
+  const catalog=fragmentCatalog(REWARD_AREAS[tier]);
+  const fragments=Array.from({length:5+tier},()=>randomItem(catalog,rng));
+  const enemies=enemyCards({seed:run.seed,round:run.round+1});
+  const giftArea=GIFT_AREAS[run.round];
+  let gift=null;
+  if (giftArea) {
+    const slot=run.cards.length;
+    const giftRng=generator(run.seed,run.round,3);
+    const cells=rolledShape(giftArea,giftSpan(run.round+1),.58+giftRng()*.15,giftRng,false,true);
+    gift={id:'p'+slot,slot,cells};
+  }
+  return {fragments,placements:[],enemies,gift};
+}
+
+function slotOrigin(slot,isEnemy) {
+  const column=slot%2, row=Math.floor(slot/2);
+  const columnOffset=SLOT_INSET+column*MAX_PIECE_SPAN;
+  return {
+    x:isEnemy ? FIELD.x+FIELD.size+columnOffset : FIELD.x-MAX_PIECE_SPAN-columnOffset,
+    y:SLOT_TOP+row*MAX_PIECE_SPAN
+  };
+}
+function slotOffsetY(piece,h=bounds(piece.cells).h) {
+  return piece.slotOffset?.y ?? Math.floor((MAX_PIECE_SPAN-h)/2);
+}
+function slotPosition(piece,isEnemy) {
+  const {w,h}=bounds(piece.cells);
+  const origin=slotOrigin(piece.slot,isEnemy);
+  const inset=(MAX_PIECE_SPAN-w)/2;
+  return {
+    x:origin.x+(piece.slotOffset?.x ?? (isEnemy ? Math.ceil(inset) : Math.floor(inset))),
+    y:origin.y+slotOffsetY(piece,h)
+  };
+}
+function makeTray(cards,kind) {
+  return cards.map(card=>{
+    const home=slotPosition(card,kind==='enemy');
+    return {...card,kind,...home,home};
+  });
+}
+
+function startBattle(run,enemies=enemyCards(run)) {
+  run.phase='battle';run.reward=null;
+  run.pieces=[...makeTray(run.cards,'card'),...makeTray(enemies,'enemy')];
+}
+
+function newRun(seed=seedValue()) {
+  const rng=generator(seed,1,0);
+  const cards=Array.from({length:3},(_,slot)=>({
+    id:'p'+slot,slot,cells:walk(START_CARD_AREA,3,rng,.24,5,CARDINAL)
+  }));
+  const run={seed,round:1,hp:HP,phase:'battle',reward:null,
+    cards};
+  startBattle(run); return run;
+}
+
+function active(piece) {
+  return piece.cells.some(([x,y])=>inDefense(piece.x+x,piece.y+y));
+}
+function deployment(run) {
+  const count=run.pieces.filter(piece=>piece.kind==='card'&&active(piece)).length;
+  const limit=deployLimit(run.round);
+  return {count,limit,overLimit:count>limit};
+}
+function settlement(run) {
+  const shield=new Set(), enemies=new Map();
+  for (const piece of run.pieces) for (const [x,y] of piece.cells) {
+    const xx=x+piece.x, yy=y+piece.y, id=key(xx,yy);
+    if (piece.kind==='enemy') enemies.set(id,(enemies.get(id)||0)+1);
+    else if (inDefense(xx,yy)) shield.add(id);
+  }
+  const uncovered=new Map(enemies);
+  const absorbed=new Set();
+  for (const id of shield) {
+    if (!uncovered.has(id)) continue;
+    const remaining=uncovered.get(id)-1;
+    if (remaining) uncovered.set(id,remaining);
+    else uncovered.delete(id);
+    absorbed.add(id);
+  }
+  const damage=[...uncovered.values()].reduce((sum,n)=>sum+n,0);
+  return {damage,absorbed,uncovered,enemies};
+}
+
+function finishBattle(run,result) {
+  run.hp=Math.max(0,run.hp-result.damage);
+  if (!run.hp) run.phase='lost';
+  else if (run.round===ROUNDS) run.phase='won';
+  else {
+    run.phase='reward';
+    run.reward=rewards(run);
+  }
+}
+
+function upgradedCards(run) {
+  const changes=new Map(run.reward.placements.map(({card,upgrade})=>[card,upgrade]));
+  const cards=run.cards.map(card=>({...card,...changes.get(card.id)}));
+  if (run.reward.gift) cards.push(run.reward.gift);
+  return cards;
+}
+function nextRound(run) {
+  const {enemies}=run.reward;
+  run.cards=upgradedCards(run);
+  run.round++;
+  startBattle(run,enemies);
+}
+
+const frame=$('frame'), canvas=$('board'), ctx=canvas.getContext('2d');
+const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+let run=newRun(), unit=1, pixelRatio=1, mode='', selected=null, drag=null;
+let locked=false, frameAnimation=0, giftNotice=0, giftTimer=0;
+let upgradeDrag=null, boardView, enemyPreviews;
+let slotScroll=0, slotViewport=null;
+const boardStyle=getComputedStyle(document.documentElement);
+const boardColors={paper:boardStyle.getPropertyValue('--paper').trim(),
+  enemy:boardStyle.getPropertyValue('--red').trim()};
+const upgradeColors={fragment:'#858585',overlap:'#666',invalid:'#aaa'};
+
+function announceGift(area) {
+  giftNotice=area;
+  clearTimeout(giftTimer);
+  giftTimer=setTimeout(()=>{giftNotice=0;updateStatus();},2400);
+  updateStatus();
+}
+function battleViewHeight(pieces) {
+  const center=HEIGHT/2, fieldRadius=FIELD.size/2;
+  // Keep the established view scale independent of the tray spacing.
+  const referencePitch=MAX_PIECE_SPAN+1;
+  const referenceTop=Math.floor((HEIGHT-(SLOT_ROWS-1)*referencePitch-MAX_PIECE_SPAN)/2);
+  let radius=fieldRadius;
+  for (const piece of pieces) {
+    const {h}=bounds(piece.cells);
+    const slotY=referenceTop+Math.floor(piece.slot/2)*referencePitch;
+    const y=slotY+slotOffsetY(piece,h);
+    radius=Math.max(radius,fieldRadius+h-1,center-y,y+h-center);
+  }
+  return Math.min(HEIGHT,2*radius);
+}
+function firstSlotRow(top,bottom,trayHeight) {
+  return bottom-top<trayHeight ? SLOT_TOP : clamp(SLOT_TOP,top,bottom-trayHeight);
+}
+function positionVisibleSlots(visibleTop,visibleBottom) {
+  const upgrading=run.phase==='reward';
+  const count=upgrading ? run.cards.length : Math.max(run.cards.length,run.pieces.length-run.cards.length);
+  const trayHeight=Math.ceil(count/2)*MAX_PIECE_SPAN;
+  const maxScroll=Math.max(0,trayHeight-(visibleBottom-visibleTop));
+  slotViewport={top:visibleTop,bottom:visibleBottom,maxScroll};
+  slotScroll=upgrading ? clamp(slotScroll,0,maxScroll) : 0;
+  // Keep each full slot square and scroll the upgrade tray when the viewport is shorter.
+  const firstRow=upgrading&&maxScroll ? visibleTop-slotScroll : firstSlotRow(visibleTop,visibleBottom,trayHeight);
+  for (const piece of run.pieces) {
+    if (upgrading&&piece.kind==='enemy') continue;
+    const row=Math.floor(piece.slot/2);
+    const y=firstRow+row*MAX_PIECE_SPAN+slotOffsetY(piece);
+    const shift=y-piece.home.y;
+    if (!shift) continue;
+    const inSlot=piece!==drag?.piece&&piece.x===piece.home.x&&piece.y===piece.home.y;
+    piece.home.y=y;
+    if (!inSlot) continue;
+    piece.y=y;
+    if (upgrading) {
+      const placement=cardPlacement(piece.id);
+      if (placement) placement.origin[1]+=shift;
+    }
+  }
+}
+function viewFor(pieces) {
+  const {clientWidth:width,clientHeight:height}=frame;
+  const hud=$('hud');
+  const ratio=Math.min(devicePixelRatio||1,3);
+  const contentTop=hud.offsetTop+hud.offsetHeight+6;
+  const headerFit=(height-2*contentTop)/FIELD.size;
+  // Keep room below the field for the centered button and its hint.
+  const footerFit=(height-2*(SETTLE_MIN_SIZE+2*SETTLE_HINT_ROOM))/(FIELD.size+6);
+  const fittedUnit=Math.min(width/WIDTH,height/battleViewHeight(pieces),headerFit,footerFit);
+  const cellPixels=Math.max(1,Math.floor(fittedUnit*ratio));
+  const scale=cellPixels/ratio;
+  const boardLeft=Math.round((width-WIDTH*scale)*ratio/2)/ratio;
+  const boardTop=Math.round((height-HEIGHT*scale)*ratio/2)/ratio;
+  const visibleTop=Math.max(0,Math.ceil(-boardTop/scale));
+  const visibleBottom=Math.min(HEIGHT,Math.floor((height-boardTop)/scale));
+  return {height,contentTop,ratio,cellPixels,scale,boardLeft,boardTop,visibleTop,visibleBottom};
+}
+function resize() {
+  boardView=viewFor(run.pieces);
+  const {height,contentTop,ratio,cellPixels,scale,boardLeft,boardTop,visibleTop,visibleBottom}=boardView;
+  unit=scale;
+  pixelRatio=ratio;
+
+  const boardWidth=WIDTH*unit, arenaLeft=FIELD.x*unit;
+  const arenaTop=boardTop+FIELD.y*unit;
+  const fragmentsTop=arenaTop-(FRAGMENT_TILE_SPAN+1)*unit;
+  positionVisibleSlots(visibleTop,visibleBottom);
+  const fieldBottom=FIELD.y+FIELD.size;
+  const settleCells=Math.min(FIELD.size,2*Math.ceil(SETTLE_MIN_SIZE/(2*unit)));
+  const freeRows=(height-boardTop)/unit-fieldBottom-settleCells;
+  const settleRow=fieldBottom+Math.max(0,Math.round(freeRows/2));
+  const sheet=$('sheet').style;
+  sheet.setProperty('--screen-w',boardWidth+'px');
+  sheet.setProperty('--screen-h',unit*HEIGHT+'px');
+  sheet.setProperty('--arena-left',arenaLeft+'px');
+  sheet.setProperty('--settle-top',settleRow*unit+'px');
+  sheet.setProperty('--settle-side',settleCells*unit+'px');
+  frame.style.setProperty('--board-left',boardLeft+'px');
+  frame.style.setProperty('--board-top',boardTop+'px');
+  frame.style.setProperty('--arena-start',boardLeft+arenaLeft+'px');
+  frame.style.setProperty('--arena-top',arenaTop+'px');
+  frame.style.setProperty('--arena-w',unit*FIELD.size+'px');
+  frame.style.setProperty('--fragments-top',fragmentsTop+'px');
+  frame.style.setProperty('--fragment-side',FRAGMENT_TILE_SPAN*unit+'px');
+  frame.dataset.fragments=fragmentsTop>=contentTop ? 'above' : 'side';
+  canvas.width=cellPixels*WIDTH;
+  canvas.height=cellPixels*HEIGHT;
+  if (run.phase==='reward') paintUpgradeOptions();
+  else refresh();
+}
+function updateEnemyPreviews() {
+  const {enemies}=run.reward;
+  const cards=upgradedCards(run);
+  const nextView=viewFor(cards.concat(enemies));
+  const trayHeight=Math.ceil(Math.max(cards.length,enemies.length)/2)*MAX_PIECE_SPAN;
+  const row=firstSlotRow(nextView.visibleTop,nextView.visibleBottom,trayHeight);
+  const count=Math.floor(enemies.length/2);
+  enemyPreviews=enemies.slice(0,count).map(enemy=>{
+    const home=slotPosition(enemy,true);
+    return {
+      cells:enemy.cells,scale:nextView.scale,
+      x:nextView.boardLeft+home.x*nextView.scale-boardView.boardLeft,
+      y:nextView.boardTop+(home.y+row-SLOT_TOP)*nextView.scale-boardView.boardTop
+    };
+  });
+}
+function square(context,x,y,scale,ratio) {
+  const x0=Math.round(x*scale*ratio)/ratio, y0=Math.round(y*scale*ratio)/ratio;
+  const x1=Math.round((x+1)*scale*ratio)/ratio, y1=Math.round((y+1)*scale*ratio)/ratio;
+  context.fillRect(x0,y0,x1-x0,y1-y0);
+}
+function settlementFade(t,x,y) {
+  return clamp((t-((x+y)%13)*.021)/.72,0,1);
+}
+function drawSettlingEnemy(x,y,t,covered) {
+  const progress=settlementFade(t,x,y);
+  const size=unit*(covered ? 1-progress*.82 : progress);
+  const inset=(unit-size)/2;
+  const left=x*unit, top=y*unit;
+  ctx.globalAlpha=(1-progress)*(covered ? .8 : 1);
+  if (covered) {
+    ctx.fillRect(left+inset,top+inset,size,size);
+  } else {
+    ctx.beginPath();
+    ctx.rect(left,top,unit,unit);
+    ctx.rect(left+inset,top+inset,size,size);
+    ctx.fill('evenodd');
+  }
+  ctx.globalAlpha=1;
+}
+function draw(fade=null) {
+  ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);
+  ctx.clearRect(0,0,canvas.width/pixelRatio,canvas.height/pixelRatio);
+  ctx.fillStyle=boardColors.paper;ctx.fillRect(FIELD.x*unit,FIELD.y*unit,FIELD.size*unit,FIELD.size*unit);
+  for (const piece of run.pieces) {
+    if (piece.kind!=='card') continue;
+    for (const [x,y] of piece.cells) {
+      const xx=x+piece.x, yy=y+piece.y;
+      ctx.fillStyle=inDefense(xx,yy)?'#343434':'#737373';
+      square(ctx,xx,yy,unit,pixelRatio);
+    }
+  }
+  if (run.phase==='reward') {
+    drawUpgrade();
+    canvas.style.cursor=upgradeDrag ? 'grabbing' : '';
+    return;
+  }
+  const current=fade?.result||settlement(run);
+  ctx.fillStyle=boardColors.enemy;
+  for (const id of current.uncovered.keys()) {
+    const [x,y]=id.split(',').map(Number);
+    if (fade) drawSettlingEnemy(x,y,fade.t,false);
+    else square(ctx,x,y,unit,pixelRatio);
+  }
+  ctx.fillStyle='#d0d0d0';
+  const dot=Math.max(1,unit*.15);
+  for (const id of current.absorbed) {
+    if (current.uncovered.has(id)) continue;
+    const [x,y]=id.split(',').map(Number);
+    ctx.fillRect((x+.5)*unit-dot/2,(y+.5)*unit-dot/2,dot,dot);
+  }
+  if (fade) {
+    ctx.fillStyle=boardColors.enemy;
+    for (const id of current.absorbed) {
+      const [x,y]=id.split(',').map(Number);
+      drawSettlingEnemy(x,y,fade.t,true);
+    }
+  }
+  ctx.fillStyle='#700000';
+  const {cellPixels}=boardView;
+  const maxMarkPixels=Math.min(cellPixels-2,Math.round(cellPixels*3/4));
+  for (const [id,layers] of current.uncovered) {
+    if (maxMarkPixels<1||current.enemies.get(id)<2) continue;
+    const [x,y]=id.split(',').map(Number);
+    if (fade && settlementFade(fade.t,x,y)>0) continue;
+    const markPixels=Math.max(1,Math.round(maxMarkPixels*Math.min(layers,6)/6));
+    const size=markPixels/pixelRatio;
+    const inset=Math.floor((cellPixels-markPixels)/2)/pixelRatio;
+    ctx.fillRect(x*unit+inset,y*unit+inset,size,size);
+  }
+  canvas.style.cursor=drag ? 'grabbing' : '';
+}
+
+function updateStatus() {
+  const {count,limit,overLimit}=deployment(run);
+  const usage=$('usage');
+  if (frame.dataset.phase!==run.phase) frame.dataset.phase=run.phase;
+  $('level').textContent=String(run.round).padStart(2,'0')+'/20';
+  $('life').textContent=run.hp;
+  $('life').classList.toggle('low',run.hp<=25);
+  usage.textContent=count+'/'+limit;
+  usage.style.color=overLimit?'#b10000':'';
+  $('settle').disabled=locked||run.phase!=='battle'||overLimit;
+  frame.classList.toggle('dragging-upgrade',Boolean(upgradeDrag));
+  const hint=$('hint');
+  const text=run.phase==='reward' ? upgradeHint() : overLimit ? message('tooMany',count-limit) : giftNotice ? message('newCard') : '';
+  if (hint.textContent!==text) hint.textContent=text;
+  const label=message(run.phase==='reward'?'upgradeBoard':'battlefield');
+  if (canvas.getAttribute('aria-label')!==label) canvas.setAttribute('aria-label',label);
+}
+function refresh() {draw();updateStatus();}
+function applyLanguage() {
+  document.documentElement.lang=language;
+  for (const element of document.querySelectorAll('[data-text]')) element.textContent=message(element.dataset.text);
+  for (const element of document.querySelectorAll('[data-label]')) element.setAttribute('aria-label',message(element.dataset.label));
+  for (const element of document.querySelectorAll('[data-title]')) element.title=message(element.dataset.title);
+  resize();
+}
+$('language').onclick=()=>{
+  language=language==='zh-CN'?'en':'zh-CN';
+  applyLanguage();
+};
+function point(event,element,scale) {
+  const box=element.getBoundingClientRect();
+  return [(event.clientX-box.left)/scale,(event.clientY-box.top)/scale];
+}
+function hit(piece,x,y) {
+  const {w,h}=bounds(piece.cells);
+  return x>=piece.x && y>=piece.y && x<piece.x+w && y<piece.y+h;
+}
+function hitSolid(piece,x,y) {
+  const cellX=Math.floor(x-piece.x), cellY=Math.floor(y-piece.y);
+  return piece.cells.some(([u,v])=>u===cellX&&v===cellY);
+}
+function targetsAt(x,y) {
+  const boxes=run.pieces.filter(piece=>hit(piece,x,y));
+  const solids=boxes.filter(piece=>hitSolid(piece,x,y));
+  const solidKind=solids[0]?.kind;
+  const onlyOneKind=solidKind && solids.every(piece=>piece.kind===solidKind);
+  const kind=onlyOneKind ? solidKind : trayModeAt(x)||mode;
+  const matchingSolids=solids.filter(piece=>piece.kind===kind);
+  return {kind,candidates:matchingSolids.length ? matchingSolids : boxes.filter(piece=>piece.kind===kind)};
+}
+function preferred(candidates) {
+  return candidates.find(piece=>piece.id===selected)||candidates.at(-1);
+}
+function trayModeAt(x) {
+  if (x<FIELD.x) return 'card';
+  if (x>=FIELD.x+FIELD.size) return 'enemy';
+  return null;
+}
+function setMode(value) {
+  if (value===mode) return;
+  mode=value;selected=null;
+  frame.dataset.mode=mode;
+}
+function movePiece(piece,x,y) {
+  const {w,h}=bounds(piece.cells);
+  piece.x=clamp(Math.round(x),0,WIDTH-w);
+  piece.y=clamp(Math.round(y),0,HEIGHT-h);
+}
+function returnToSlot(piece) {
+  Object.assign(piece,piece.home);
+}
+function battleReady() {return run.phase==='battle'&&!locked&&!$('info').open;}
+
+frame.addEventListener('pointerdown',event=>{
+  if (event.target!==frame||event.button!==0||!battleReady()||drag) return;
+  const [x]=point(event,canvas,unit);
+  const side=trayModeAt(x);
+  if (!side) return;
+  setMode(side);
+  canvas.focus({preventScroll:true});
+  refresh();
+});
+canvas.addEventListener('pointerdown',event=>{
+  if (event.button!==0||drag||$('info').open) return;
+  const [x,y]=point(event,canvas,unit);
+  if (run.phase==='reward') {
+    event.preventDefault();
+    const placement=placedFragmentAt(x,y);
+    if (placement) {
+      const grip=[Math.floor(x)-placement.origin[0],Math.floor(y)-placement.origin[1]];
+      startFragmentDrag(event,placement.fragment,grip);
+    }
+    return;
+  }
+  if (!battleReady()) return;
+  const {kind,candidates}=targetsAt(x,y);
+  setMode(kind);
+  const piece=preferred(candidates);
+  canvas.focus({preventScroll:true});
+  event.preventDefault();
+  if (!piece) {selected=null;refresh();return;}
+  const prior=selected;
+  selected=piece.id;
+  drag={id:event.pointerId,piece,prior,candidates,origin:[piece.x,piece.y],pointer:[x,y],moved:false};
+  canvas.setPointerCapture(event.pointerId);
+  refresh();
+});
+canvas.addEventListener('pointermove',event=>{
+  if (run.phase==='reward') {
+    if (!upgradeDrag) canvas.style.cursor=placedFragmentAt(...point(event,canvas,unit)) ? 'grab' : '';
+    return;
+  }
+  if (!drag) {
+    const target=battleReady()&&targetsAt(...point(event,canvas,unit)).candidates.length;
+    canvas.style.cursor=target ? 'grab' : '';
+    return;
+  }
+  if (event.pointerId!==drag.id) return;
+  moveDraggedPiece(point(event,canvas,unit));
+  refresh();
+});
+function moveDraggedPiece([x,y]) {
+  const dx=Math.round(x-drag.pointer[0]),dy=Math.round(y-drag.pointer[1]);
+  if (!dx&&!dy&&!drag.moved) return;
+  const oldX=drag.piece.x,oldY=drag.piece.y;
+  movePiece(drag.piece,drag.origin[0]+dx,drag.origin[1]+dy);
+  if (oldX!==drag.piece.x||oldY!==drag.piece.y) drag.moved=true;
+}
+function release(event) {
+  if (!drag || event.pointerId!==drag.id) return;
+  const dropped=event.type==='pointerup';
+  if (dropped) moveDraggedPiece(point(event,canvas,unit));
+  const {piece,prior,candidates,origin,moved}=drag;
+  drag=null;
+  if (!dropped) {
+    movePiece(piece,...origin);
+  } else if (!moved&&prior===piece.id&&candidates.length>1) {
+    const index=candidates.indexOf(piece);
+    selected=candidates[(index+candidates.length-1)%candidates.length].id;
+  }
+  if (!active(piece)) returnToSlot(piece);
+  refresh();
+}
+canvas.addEventListener('pointerup',release);
+canvas.addEventListener('pointercancel',release);
+canvas.addEventListener('lostpointercapture',release);
+canvas.addEventListener('wheel',event=>{
+  if (run.phase!=='reward'||upgradeDrag||!slotViewport?.maxScroll||!event.deltaY||$('info').open) return;
+  const [x]=point(event,canvas,unit);
+  if (x>=FIELD.x) return;
+  event.preventDefault();
+  slotScroll+=Math.sign(event.deltaY)*3;
+  positionVisibleSlots(slotViewport.top,slotViewport.bottom);
+  refresh();
+},{passive:false});
+
+canvas.addEventListener('keydown',event=>{
+  if (!battleReady()||drag) return;
+  if (event.key==='1'||event.key==='2') {
+    setMode(event.key==='1'?'card':'enemy');
+    refresh();
+    return;
+  }
+  const piece=run.pieces.find(p=>p.id===selected);
+  if (!piece) return;
+  const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};
+  if (moves[event.key]) {
+    event.preventDefault();
+    const [dx,dy]=moves[event.key];
+    movePiece(piece,piece.x+dx,piece.y+dy);
+    if (!active(piece)) returnToSlot(piece);
+    refresh();
+  }
+});
+
+function showInfo(title,paragraphs,buttons) {
+  const target=$('info');
+  $('info-title').textContent=message(title);
+  $('info-body').replaceChildren(...paragraphs.map(text=>{
+    const p=document.createElement('p');p.textContent=text;return p;
+  }));
+  $('info-actions').replaceChildren(...buttons.map(([text,action],i)=>{
+    const button=document.createElement('button');
+    button.className=i===buttons.length-1?'action':'quiet';
+    button.textContent=message(text);button.onclick=()=>{target.close();action?.();};return button;
+  }));
+  if (!target.open) target.showModal();
+}
+$('help').onclick=()=>showInfo('help',[message('rules'),message('upgradeRule')],[['close']]);
+function restart() {
+  cancelAnimationFrame(frameAnimation);
+  frameAnimation=0;locked=false;drag=null;selected=null;giftNotice=0;
+  upgradeDrag=null;
+  setMode('');
+  run=newRun();resize();
+}
+$('reset').onclick=()=>showInfo('restartTitle',[message('restartPrompt')],[['keepPlaying'],['restartTitle',restart]]);
+
+function terminal() {
+  if (!['won','lost'].includes(run.phase)) return;
+  const won=run.phase==='won';
+  showInfo(won?'won':'lost',[won?message('remainingLife',run.hp):message('reachedRound',run.round)],
+    [['viewBattlefield'],['newRun',restart]]);
+}
+function runSettlement() {
+  if (!battleReady()||drag||deployment(run).overLimit) return;
+  locked=true;updateStatus();
+  const result=settlement(run);
+  const completed=()=>{
+    locked=false;frameAnimation=0;selected=null;
+    finishBattle(run,result);
+    if (run.phase==='reward') openUpgrade();
+    else {
+      refresh();
+      terminal();
+    }
+  };
+  if (reduced.matches||!result.enemies.size) {completed();return;}
+  const start=performance.now();
+  function tick(now) {
+    const t=(now-start)/420;
+    if (t>=1) {completed();return;}
+    draw({t,result});frameAnimation=requestAnimationFrame(tick);
+  }
+  frameAnimation=requestAnimationFrame(tick);
+}
+$('settle').onclick=runSettlement;
+
+function fragmentThumbnail(cells) {
+  const thumb=document.createElement('canvas');
+  const side=Math.round(FRAGMENT_TILE_SPAN*unit*pixelRatio);
+  thumb.width=side;thumb.height=side;thumb.setAttribute('aria-hidden','true');
+  const context=thumb.getContext('2d'),{w,h}=bounds(cells);
+  const left=Math.floor((FRAGMENT_TILE_SPAN-w)/2),top=Math.floor((FRAGMENT_TILE_SPAN-h)/2);
+  context.setTransform(pixelRatio,0,0,pixelRatio,0,0);
+  context.fillStyle=upgradeColors.fragment;
+  for (const [x,y] of cells) square(context,left+x,top+y,unit,pixelRatio);
+  return thumb;
+}
+function upgradeSlotOrigin(piece) {
+  const {x}=slotOrigin(piece.slot,false);
+  return {x,y:piece.home.y-slotOffsetY(piece)};
+}
+function upgradeCardAt(x,y) {
+  return run.pieces.find(piece=>{
+    if (piece.kind!=='card') return false;
+    const origin=upgradeSlotOrigin(piece);
+    return x>=origin.x&&x<origin.x+MAX_PIECE_SPAN&&y>=origin.y&&y<origin.y+MAX_PIECE_SPAN;
+  });
+}
+function cardPlacement(id) {return run.reward.placements.find(placement=>placement.card===id);}
+function placedFragmentAt(x,y) {
+  const column=Math.floor(x), row=Math.floor(y);
+  return run.reward.placements.find(placement=>{
+    const [left,top]=placement.origin;
+    return placement.fragmentCells.some(([u,v])=>left+u===column&&top+v===row);
+  });
+}
+function openUpgrade() {
+  upgradeDrag=null;slotScroll=0;
+  for (const piece of run.pieces) if (piece.kind==='card') returnToSlot(piece);
+  resize();
+}
+function paintUpgradeOptions() {
+  updateEnemyPreviews();
+  const list=$('fragments');
+  const usedFragments=new Set(run.reward.placements.map(placement=>placement.fragment));
+  list.replaceChildren(...run.reward.fragments.map((cells,index)=>{
+    const used=usedFragments.has(index);
+    const button=document.createElement('button');
+    button.type='button';button.className='choice';button.tabIndex=-1;
+    button.setAttribute('aria-label',message('fragmentLabel',used));
+    button.classList.toggle('used',used);
+    button.append(fragmentThumbnail(cells));
+    button.addEventListener('pointerdown',event=>{
+      const [x,y]=point(event,button,unit);
+      const {w,h}=bounds(cells);
+      const left=Math.floor((FRAGMENT_TILE_SPAN-w)/2);
+      const top=Math.floor((FRAGMENT_TILE_SPAN-h)/2);
+      const grip=[clamp(Math.floor(x)-left,0,w-1),clamp(Math.floor(y)-top,0,h-1)];
+      startFragmentDrag(event,index,grip);
+    });
+    return button;
+  }));
+  refresh();
+}
+
+function startFragmentDrag(event,fragment,grip) {
+  if (event.button!==0||run.phase!=='reward'||upgradeDrag||$('info').open) return;
+  event.preventDefault();
+  const start=point(event,canvas,unit).map(Math.floor);
+  const cells=run.reward.fragments[fragment];
+  upgradeDrag={id:event.pointerId,fragment,cells,grip,start,moved:false};
+  frame.setPointerCapture(event.pointerId);
+  refresh();
+}
+function moveFragmentDrag(event) {
+  const [x,y]=point(event,canvas,unit).map(Math.floor);
+  const {start,grip,fragment,cells}=upgradeDrag;
+  if (x!==start[0]||y!==start[1]) upgradeDrag.moved=true;
+  const origin=[x-grip[0],y-grip[1]];
+  const card=upgradeCardAt(x,y)||cells.map(([u,v])=>upgradeCardAt(origin[0]+u,origin[1]+v)).find(Boolean);
+  const proposal=card&&upgradePlacement(card,fragment,origin,cells);
+  Object.assign(upgradeDrag,{card,origin,proposal});
+}
+frame.addEventListener('pointermove',event=>{
+  if (upgradeDrag?.id!==event.pointerId) return;
+  moveFragmentDrag(event);
+  refresh();
+});
+function releaseFragment(event) {
+  if (upgradeDrag?.id!==event.pointerId) return;
+  const dropped=event.type==='pointerup';
+  if (dropped) moveFragmentDrag(event);
+  const {fragment,moved,card,origin,proposal}=upgradeDrag;
+  upgradeDrag=null;
+  if (!dropped||!moved) {
+    refresh();
+    return;
+  }
+  const shelf=$('fragments').getBoundingClientRect();
+  const onShelf=event.clientX>=shelf.left&&event.clientX<shelf.right&&
+    event.clientY>=shelf.top&&event.clientY<shelf.bottom;
+  if (onShelf) run.reward.placements=run.reward.placements.filter(item=>item.fragment!==fragment);
+  else if (proposal?.valid) placeUpgradeFragment(card,fragment,origin,proposal.clipped);
+  paintUpgradeOptions();
+}
+frame.addEventListener('pointerup',releaseFragment);
+frame.addEventListener('pointercancel',releaseFragment);
+frame.addEventListener('lostpointercapture',releaseFragment);
+
+function upgradePlacement(card,index,[x,y],cells) {
+  const slot=upgradeSlotOrigin(card);
+  const placed=cardPlacement(card.id);
+  const occupied=Boolean(placed&&placed.fragment!==index);
+  const clipped=cells.filter(([u,v])=>{
+    const xx=x+u, yy=y+v;
+    return xx>=0&&xx<WIDTH&&yy>=0&&yy<HEIGHT&&
+      xx>=slot.x&&xx<slot.x+MAX_PIECE_SPAN&&yy>=slot.y&&yy<slot.y+MAX_PIECE_SPAN;
+  });
+  return {valid:clipped.length>0&&!occupied,occupied,clipped};
+}
+function placeUpgradeFragment(card,index,origin,fragmentCells) {
+  const [x,y]=origin;
+  const patch=fragmentCells.map(([u,v])=>[x-card.x+u,y-card.y+v]);
+  const cells=normalize(card.cells.concat(patch));
+  const slot=upgradeSlotOrigin(card);
+  const slotOffset={
+    x:Math.min(card.x,...fragmentCells.map(([u])=>x+u))-slot.x,
+    y:Math.min(card.y,...fragmentCells.map(([,v])=>y+v))-slot.y
+  };
+  const placements=run.reward.placements.filter(item=>item.fragment!==index);
+  placements.push({card:card.id,fragment:index,origin,fragmentCells,upgrade:{cells,slotOffset}});
+  run.reward.placements=placements;
+}
+function drawUpgradeFragment(card,cells,[x,y],valid=true) {
+  const occupied=card&&new Set(card.cells.map(cell=>key(...cell)));
+  for (const [u,v] of cells) {
+    const xx=x+u, yy=y+v;
+    const overlap=occupied&&occupied.has(key(xx-card.x,yy-card.y));
+    ctx.fillStyle=valid ? (overlap ? upgradeColors.overlap : upgradeColors.fragment) : upgradeColors.invalid;
+    square(ctx,xx,yy,unit,pixelRatio);
+  }
+}
+function drawUpgrade() {
+  for (const {cells,scale,x,y} of enemyPreviews) {
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.globalAlpha=.2;
+    ctx.fillStyle=boardColors.enemy;
+    for (const [u,v] of cells) square(ctx,u,v,scale,pixelRatio);
+    ctx.restore();
+  }
+
+  const moving=upgradeDrag?.moved ? upgradeDrag : null;
+  for (const placement of run.reward.placements) {
+    if (placement.fragment===moving?.fragment) continue;
+    const target=run.pieces.find(piece=>piece.id===placement.card);
+    drawUpgradeFragment(target,placement.fragmentCells,placement.origin);
+  }
+  if (moving) {
+    const {card,cells,origin,proposal}=moving;
+    ctx.globalAlpha=.65;
+    drawUpgradeFragment(card,proposal?.clipped??cells,origin,Boolean(proposal?.valid));
+    ctx.globalAlpha=1;
+  }
+  ctx.strokeStyle='#a4a4a4';
+  ctx.lineWidth=1/pixelRatio;
+  const side=MAX_PIECE_SPAN*unit;
+  for (const piece of run.pieces) {
+    if (piece.kind!=='card') continue;
+    const {x,y}=upgradeSlotOrigin(piece);
+    ctx.strokeRect(x*unit,y*unit,side,side);
+  }
+}
+function upgradeHint() {
+  if (upgradeDrag?.proposal?.occupied) {
+    return message('occupiedSlot');
+  }
+  return message('upgradeHint');
+}
+$('advance').onclick=()=>{
+  if (run.phase!=='reward') return;
+  upgradeDrag=null;
+  selected=null;giftNotice=0;
+  setMode('');
+  const {gift}=run.reward;
+  nextRound(run);
+  if (gift) announceGift(gift.cells.length);
+  resize();
+  canvas.focus({preventScroll:true});
+};
+window.addEventListener('resize',resize);
+applyLanguage();
+document.fonts.ready.then(resize);
+</script>
+</body>
+</html>
