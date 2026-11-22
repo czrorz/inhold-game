@@ -148,7 +148,6 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 #undo-round .undo-underline{visibility:hidden}
 #undo-round:hover .undo-underline{visibility:visible}
 #undo-round:focus-visible{outline:1px solid currentColor}
-#life{color:#644646}#life.low{color:#b10000;font-weight:650}
 #usage{text-align:right}
 #footer{top:var(--settle-top);left:var(--arena-left);width:var(--arena-w);text-align:center;pointer-events:none}
 .action{background:#333;color:#fff;padding:9px 20px;font-size:13px}.action:hover:not(:disabled){background:#505050}.action:active:not(:disabled){transform:translateY(1px)}
@@ -169,7 +168,7 @@ dialog::backdrop{background:#3336}h1,h2,p{margin:0}h1,h2{font-weight:550;line-he
 #info-body:has(+ #info-actions:empty){margin-bottom:0}
 #info[data-topic="help"] .dialog-body > p{font-size:16px;line-height:1.5;text-wrap:pretty}
 #info[data-topic="help"] .dialog-body > p + p{margin-top:10px}
-#info[data-topic="restartTitle"][open]{width:min(480px,94vw);display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden}
+#info[data-topic="restartTitle"][open]{width:min(480px,94vw);height:500px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden}
 #info[data-topic="restartTitle"] .dialog-body{overflow:auto;overscroll-behavior:contain}
 #info[data-topic="saveSlots"]{width:min(480px,94vw)}
 #info button{background:transparent;color:var(--muted)}
@@ -460,7 +459,7 @@ const MESSAGES = {
     openingMode:'开局模式',
     currentSeed:'当前种子', nextSeed:'下局种子', enterSeed:'输入种子', recentSeeds:'最近玩过的种子', randomSeed:'随机抽取',
     editFavorites:'编辑收藏', done:'完成',
-    undoRound:'撤回上一回合', undoRoundPrompt:n=>`回到第 ${n} 场开打前，撤回之后的操作。`,
+    undoRound:'撤回回合', undoRoundPrompt:n=>`回到第 ${n} 场开打前，撤回之后的操作。`,
     won:'走完了二十场', lost:'生命耗尽', viewBattlefield:'查看战场', newRun:'另开一局',
     remainingLife:n=>`最终剩余生命 ${n}。`, reachedRound:n=>`这一局打到了第 ${n} 场。`,
     tooMany:n=>`请移出 ${n} 张牌。`, newCard:'获得新牌。',
@@ -484,7 +483,7 @@ const MESSAGES = {
     openingMode:'Game mode',
     currentSeed:'Current seed', nextSeed:'Next seed', enterSeed:'Enter seed', recentSeeds:'Recent seeds', randomSeed:'Roll seed',
     editFavorites:'Edit favorites', done:'Done',
-    undoRound:'Undo last round', undoRoundPrompt:n=>`Return to the start of round ${n} and undo all actions since then.`,
+    undoRound:'Undo round', undoRoundPrompt:n=>`Return to the start of round ${n} and undo all actions since then.`,
     won:'Twenty rounds cleared', lost:'Out of life', viewBattlefield:'View battlefield', newRun:'New run',
     remainingLife:n=>`Life remaining: ${n}.`, reachedRound:n=>`You reached round ${n}.`,
     tooMany:n=>`Move ${n} ${n===1?'tile':'tiles'} out of the field.`, newCard:'New tile.',
@@ -2956,7 +2955,6 @@ function updateLife() {
   const life=$('life');
   const text=String(displayedHp??run.hp);
   if (life.textContent!==text) life.textContent=text;
-  life.classList.toggle('low',run.hp<=25);
 }
 function updateStatus() {
   const {count,limit,overLimit}=deployment(run);
@@ -3419,15 +3417,18 @@ function beginRun(seed,gameMode,slot=activeSaveSlot) {
   saveRun();
 }
 function undoRoundStart() {
-  // After settlement, the round number stays on the battle just completed.
-  return roundStarts.at(run.phase==='battle'?-2:-1);
+  const start=roundStarts.at(-1);
+  if (!start||run.phase!=='battle') return start;
+  const usedItem=run.potions.length!==start.potions.length;
+  const movedPiece=run.pieces.some(piece=>piece.x!==piece.home.x||piece.y!==piece.home.y);
+  return usedItem||movedPiece ? start : roundStarts.at(-2);
 }
 function showUndoRound() {
   const start=undoRoundStart();
   if (!start||locked||drag||upgradeDrag) return;
   showInfo('undoRound',[message('undoRoundPrompt',start.round)],[['keepPlaying'],['confirm',()=>{
     const restored=structuredClone(start);
-    if (run.phase==='battle') roundStarts.pop();
+    if (start!==roundStarts.at(-1)) roundStarts.pop();
     showRun(restored);
     saveRun();
     canvas.focus({preventScroll:true});
