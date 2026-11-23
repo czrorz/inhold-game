@@ -702,8 +702,10 @@ function potionAlign(cells, side) {
   return result;
 }
 
-function potionShape(id, piece, option={}) {
+function potionShape(id, piece, option={},offset) {
   if (!piece?.cells.length) return null;
+  const {x:offsetX,y:offsetY}=offset??pieceSlotOffset(piece,piece.home);
+  const frame={x:-offsetX,y:-offsetY};
   const cells=piece.cells.map(([x,y])=>potionCell(piece,x,y));
   const original=new Map(cells.map(cell=>[key(cell.x,cell.y),cell]));
   let result;
@@ -720,7 +722,7 @@ function potionShape(id, piece, option={}) {
       const union=new Map(original);
       for (const cell of cells) {
         const x=cell.x+dx,y=cell.y+dy,id=key(x,y);
-        if (!union.has(id)) union.set(id,{x,y});
+        if (inSlotFrame(frame,x,y)&&!union.has(id)) union.set(id,{x,y});
       }
       result=[...union.values()];
       break;
@@ -730,7 +732,7 @@ function potionShape(id, piece, option={}) {
       result=potionSolidify(cells,id==='strong');
       break;
     case 'life':
-      result=potionLife(cells,original);
+      result=potionLife(cells,original).filter(({x,y})=>inSlotFrame(frame,x,y));
       break;
     case 'difference': {
       const differences=new Map();
@@ -751,13 +753,14 @@ function potionShape(id, piece, option={}) {
       const {turns=0,mirror=false}=option;
       if (!Number.isInteger(turns)) return null;
       const quarters=((turns%4)+4)%4;
+      const last=MAX_PIECE_SPAN-1;
       result=cells.map(cell=>{
-        let {x,y}=cell;
-        if (mirror) x=-x;
-        for (let i=0;i<quarters;i++) [x,y]=[-y,x];
-        return {...cell,x,y};
+        let x=cell.x-frame.x, y=cell.y-frame.y;
+        if (mirror) x=last-x;
+        for (let i=0;i<quarters;i++) [x,y]=[last-y,x];
+        return {...cell,x:x+frame.x,y:y+frame.y};
       });
-      return {...potionCoordinates(result),dx:0,dy:0};
+      return potionCoordinates(result);
     }
     default:
       return null;
@@ -789,6 +792,7 @@ function potionOverlay(a,b,delta={},operation='intersection') {
   } else {
     for (const [id,cell] of first) if (!second.has(id)) cells.push(cell);
     for (const [id,cell] of second) if (!first.has(id)) cells.push(cell);
+    if (cells.length===first.size+second.size) return null;
   }
   const {cells:shape,marks,double,pickups,dx:x,dy:y}=potionCoordinates(cells);
   return {cells:shape,marks,double,pickups,x:cells.length?x:a.x,y:cells.length?y:a.y};
@@ -870,7 +874,7 @@ const HEAL_POTION_AMOUNT = 5;
 const POTIONS = {
   cut:{kind:'both',optionRows:1,zh:['切开','沿竖线或横线切开一张牌。两片可分别移动，黑牌两片共占一个摆放名额。仅本场。'],en:['Cut','Split a tile or enemy along a vertical or horizontal line. Move the halves separately. Black halves count as one played tile. This battle only.']},
   scout:{kind:null,optionRows:1,zh:['侦察','查看接下来三场中任意一场的敌人。'],en:['Scout','See the enemies in one of the next three encounters.']},
-  turn:{kind:'both',optionRows:2,zh:['转向','改变一张牌的朝向。红牌仅本场，黑牌永久生效。'],en:['Turn','Change a tile’s orientation. Red tiles change for this battle only. Black tiles change permanently.']},
+  turn:{kind:'both',optionRows:2,zh:['转向','改变一张牌的朝向。红牌仅本场。黑牌只能在本场临时变形前转向，永久生效。'],en:['Turn','Change a tile’s orientation. Red tiles change for this battle only. Use on a black tile before any temporary changes to it this battle. Permanent for black tiles.']},
   shift:{kind:'card',optionRows:2,zh:['错位合并','把这张牌沿八个方向之一挪一格，再与原形合并。仅本场。'],en:['Offset copy','Shift a copy of the tile one square and unite it with the original. This battle only.']},
   align:{kind:'both',optionRows:1,zh:['对齐','黑牌或红牌的各行或各列向原边界靠齐。仅本场。'],en:['Align','Pack each row or column of a black or red tile against its original edge. This battle only.']},
   intersection:{kind:'card',count:2,overlap:true,zh:['重合','把两张黑牌拖进战场。确认后，重合部分原地留下，不占名额，两张原牌停用。仅本场。'],en:['Intersection','Drag two black tiles into the arena. Confirm to leave their intersection in place without using a slot and set both originals aside. This battle only.']},
@@ -878,11 +882,11 @@ const POTIONS = {
   surround:{kind:null,zh:['包围','填上由至少两张牌共同围住的空白区域，仅本场。'],en:['Enclosure','Fill empty regions enclosed by at least two tiles this round.']},
   life:{kind:'both',zh:['生命游戏','让一张牌演化一步。原有格存活时保留空心和道具，新格为实心。仅本场。'],en:['Game of Life','Run one Conway step. Surviving cells keep their hollow state and items. New cells are solid. This battle only.']},
   edge:{kind:null,zh:['贴边','结算时，黑牌共用外边两侧的格子会留到下一场。'],en:['Shared edges','At settlement, keep the cells on both sides of shared outer edges between your tiles for the next battle.']},
-  xor:{kind:'enemy',count:2,overlap:true,zh:['对称差','把两个敌人拖进战场。确认后，重合的格子消失。仅本场。'],en:['Symmetric difference','Drag two enemies into the arena. Confirm to remove their overlapping cells. This battle only.']},
+  xor:{kind:'enemy',count:2,overlap:true,zh:['对称差','把两个敌人拖进战场。确认后，重合的格子消失。剩余格只能整组移动，每格都必须留在战场内。仅本场。'],en:['Symmetric difference','Drag two enemies into the arena. Confirm to remove their overlapping cells. The remaining cells can only move as a group, and every cell must stay in the arena. This battle only.']},
   difference:{kind:'card',zh:['单象限差集','用这张牌的 A−A 替代原形，只取右下象限的差。仅本场。'],en:['Quadrant difference','Replace a tile with its A−A differences in the lower-right quadrant. This battle only.']},
   strong:{kind:'card',zh:['强力固化','填满同一行或同一列两个已有格之间的空格。仅本场。'],en:['Strong fill','Fill gaps between existing squares in each row or column. This battle only.']},
-  moveCell:{kind:'card',editor:true,zh:['挪一格','选一张黑牌，把一个黑格挪到空位。永久生效。'],en:['Move one cell','Move one cell of a black tile into an empty spot. Permanent.']},
-  exchange:{kind:'card',count:2,editor:true,zh:['交换4格','两张黑牌各选4格，从战场拖到对方牌上。重合处合成一格。永久生效。'],en:['Exchange four cells','Select four cells from each of two black tiles, then drag them from the arena onto the other tile. Overlaps merge. Permanent.']},
+  moveCell:{kind:'card',editor:true,zh:['挪一格','选一张黑牌，把一个黑格挪到空位。须在本场临时变形前使用。永久生效。'],en:['Move one cell','Move one cell of a black tile into an empty spot. Use before any temporary changes to that tile this battle. Permanent.']},
+  exchange:{kind:'card',count:2,editor:true,zh:['交换4格','两张黑牌各选4格，从战场拖到对方牌上。重合处合成一格。两张牌本场都未临时变形时可用。永久生效。'],en:['Exchange four cells','Select four cells from each of two black tiles, then drag them from the arena onto the other tile. Overlaps merge. Neither tile can have changed temporarily this battle. Permanent.']},
   sideSwap:{kind:'both',count:2,zh:['敌我互换','一张黑牌和一张红牌互换阵营。黑牌变成实心红牌。仅本场。'],en:['Switch sides','Swap one black and one red tile. The black tile becomes a solid red enemy. This battle only.']},
   fillEnemy:{kind:'enemy',zh:['填实敌人','把一只敌人的空心格原地填实。这只敌人身上的道具全部消失。仅本场。'],en:['Fill enemy','Turn an enemy’s hollow cells solid and remove every item it carries. This battle only.']},
   nextEnemy:{kind:'enemy',zh:['换下一场的敌人','和下一场随机一只敌人互换。'],en:['Swap with next encounter','Trade this enemy for a random enemy from the next encounter.']},
@@ -955,6 +959,15 @@ function discardPotion(redraw=true) {
   potionChoice=null;
   if (redraw) refresh();
 }
+function canPermanentlyChangeCard(piece,base) {
+  if (run.temporarilyChangedCards?.has(base.id)||piece.sourceId) return false;
+  // Older saves contain the cell mapping but no record of confirmed temporary changes.
+  if (!piece.sourceCells) return true;
+  return piece.cells.length===base.cells.length&&piece.cells.every(cell=>{
+    const id=key(...cell);
+    return piece.sourceCells.get(id)===id;
+  });
+}
 function eligiblePotionTarget(piece) {
   const {id,targets}=potionChoice, spec=POTIONS[id];
   if (piece.inactive||piece.banned||piece.free||!piece.cells.length) return false;
@@ -965,13 +978,14 @@ function eligiblePotionTarget(piece) {
       run.pieces.find(candidate=>candidate.id===target)?.kind!==piece.kind);
   }
   if (id==='nextEnemy') return run.round<ROUNDS;
-  if (spec.editor) {
-    const source=piece.sourceId??piece.id, base=run.cards.find(card=>card.id===source);
-    return !piece.swapped&&base&&base.cells.length>=(id==='exchange'?EXCHANGE_SIZE:1)&&
-      targets.every(target=>target===piece.id||
-        (run.pieces.find(candidate=>candidate.id===target)?.sourceId??target)!==source);
-  }
-  return true;
+  const turnBlackCard=id==='turn'&&piece.kind==='card'&&!piece.swapped;
+  if (!spec.editor&&!turnBlackCard) return true;
+  const source=piece.sourceId??piece.id, base=run.cards.find(card=>card.id===source);
+  if (!base||piece.swapped||!canPermanentlyChangeCard(piece,base)) return false;
+  if (turnBlackCard) return true;
+  return base.cells.length>=(id==='exchange'?EXCHANGE_SIZE:1)&&
+    targets.every(target=>target===piece.id||
+      (run.pieces.find(candidate=>candidate.id===target)?.sourceId??target)!==source);
 }
 function cutTarget() {
   if (potionChoice?.id!=='cut') return;
@@ -1174,8 +1188,11 @@ function drawOverlapPreview() {
   }
 }
 
+function inBoard(x,y) {
+  return x>=viewLeft&&x<viewRight&&y>=0&&y<HEIGHT;
+}
 function pieceFits(cells,x,y) {
-  return cells.every(([u,v])=>x+u>=viewLeft&&x+u<viewRight&&y+v>=0&&y+v<HEIGHT);
+  return cells.every(([u,v])=>inBoard(x+u,y+v));
 }
 
 function existingSources(piece,shape) {
@@ -1186,20 +1203,16 @@ function existingSources(piece,shape) {
   }
   return sources;
 }
-function transformedPiece(piece,shape,keepAnchor=false) {
+function pieceSlotOffset(piece,home) {
+  const isEnemy=piece.kind==='enemy';
+  const slot=slotOrigin(piece.slot,isEnemy,isEnemy?maxTrayOffset:trayOffset);
+  return {x:home.x-slot.x,y:home.y-slot.y};
+}
+function transformedPiece(piece,shape) {
+  const home={x:piece.home.x+shape.dx,y:piece.home.y+shape.dy};
   const updated={...piece,cells:shape.cells,marks:shape.marks,double:shape.double,pickups:shape.pickups,
-    x:piece.x+shape.dx,y:piece.y+shape.dy};
+    x:piece.x+shape.dx,y:piece.y+shape.dy,home,slotOffset:pieceSlotOffset(piece,home)};
   if (piece.kind==='card') updated.sourceCells=existingSources(piece,shape);
-  if (keepAnchor) {
-    const isEnemy=piece.kind==='enemy';
-    const slot=slotOrigin(piece.slot,isEnemy,isEnemy?maxTrayOffset:trayOffset);
-    const home={x:piece.home.x+shape.dx,y:piece.home.y+shape.dy};
-    updated.home=home;
-    updated.slotOffset={x:home.x-slot.x,y:home.y-slot.y};
-  } else if (!active(piece)) {
-    updated.home=slotPosition({...updated,slotOffset:undefined},piece.kind==='enemy',piece.kind==='enemy'?maxTrayOffset:trayOffset);
-    updated.x=updated.home.x;updated.y=updated.home.y;
-  }
   return updated;
 }
 function replacePieces(replacements) {
@@ -1398,9 +1411,11 @@ function planPotionEdit(pieces) {
     const {frame,anchor}=cardEditSlot(card);
     const home={x:anchor.x+dx,y:anchor.y+dy};
     const slotOffset={x:home.x-frame.x,y:home.y-frame.y};
+    const piece=pieces[index];
+    const x=home.x+piece.x-piece.home.x, y=home.y+piece.y-piece.home.y;
     const base={...card,cells,double,slotOffset};
     updated.set(card.id,base);
-    replacements.set(pieces[index].id,{...base,...home,home,kind:'card'});
+    replacements.set(piece.id,{...base,x,y,home,kind:'card'});
   }
   return {
     cards:run.cards.map(card=>updated.get(card.id)??card),
@@ -1411,12 +1426,12 @@ function planPotionEdit(pieces) {
     })
   };
 }
-function shapeInSlot(shape,target,kind,id=target.id) {
-  const tile={...shape,id,kind,slot:target.slot};
-  const isEnemy=kind==='enemy';
-  const home=slotPosition(tile,isEnemy,isEnemy?maxTrayOffset:trayOffset);
-  const position=active(target)&&pieceFits(tile.cells,target.x,target.y)?{x:target.x,y:target.y}:home;
-  return {...tile,...position,home};
+function shapeAtTarget(shape,slotOffset,target,id=target.id) {
+  const {kind,slot}=target;
+  const frame=potionFrame(target,true);
+  const home={x:frame.x+slotOffset.x,y:frame.y+slotOffset.y};
+  const x=home.x+target.x-target.home.x, y=home.y+target.y-target.home.y;
+  return {...shape,id,kind,slot,x,y,home,slotOffset};
 }
 
 function nextEncounter(state=run) {
@@ -1430,18 +1445,22 @@ function planNextEnemy(piece) {
   const index=rangeInt(0,enemies.length-1,generator(run.seed,run.round,40+swaps));
   const opponent=enemies[index];
   const nextEnemies=enemies.slice();
-  nextEnemies[index]={...opponent,cells:piece.cells,marks:piece.marks??{},pickups:piece.pickups};
-  const incoming=shapeInSlot(opponent,piece,'enemy');
+  const outgoingOffset=pieceSlotOffset(piece,piece.home);
+  nextEnemies[index]={...opponent,cells:piece.cells,marks:piece.marks??{},pickups:piece.pickups,slotOffset:outgoingOffset};
+  const opponentHome=slotPosition(opponent,true,maxTrayOffset);
+  const incomingOffset=pieceSlotOffset({slot:opponent.slot,kind:'enemy'},opponentHome);
+  const incoming=shapeAtTarget(opponent,incomingOffset,piece);
   return {pieces:replacePieces(new Map([[piece.id,incoming]])),nextEnemies,nextEnemySwaps:swaps+1};
 }
 function turnCardPermanently(piece,updated,option) {
   const source=piece.sourceId??piece.id;
   const base=run.cards.find(card=>card.id===source);
   if (!base) return null;
-  const turned=potionShape('turn',base,option);
-  if (!turned) return null;
   const {frame,anchor}=cardEditSlot(base);
-  const slotOffset={x:anchor.x-frame.x,y:anchor.y-frame.y};
+  const offset={x:anchor.x-frame.x,y:anchor.y-frame.y};
+  const turned=potionShape('turn',base,option,offset);
+  if (!turned) return null;
+  const slotOffset={x:offset.x+turned.dx,y:offset.y+turned.dy};
   const newByOld=new Map([...turned.sources].map(([next,old])=>[old,next]));
   const candidates=replacePieces(new Map([[piece.id,updated]]));
   const pieces=candidates.map(candidate=>{
@@ -1476,8 +1495,9 @@ function makePotionPlan() {
   if (id==='sideSwap') {
     const [black,red]=first.kind==='card'?[first,second]:[second,first];
     const serial=(run.potionSerial??0)+1;
-    const borrowed={...shapeInSlot({cells:red.cells},black,'card','swap'+serial),swapped:true,sourceCells:new Map()};
-    const enemy={...shapeInSlot({cells:black.cells,marks:{}},red,'enemy'),swapped:true};
+    const redOffset=pieceSlotOffset(red,red.home), blackOffset=pieceSlotOffset(black,black.home);
+    const borrowed=shapeAtTarget({cells:red.cells,swapped:true,sourceCells:new Map()},redOffset,black,'swap'+serial);
+    const enemy=shapeAtTarget({cells:black.cells,marks:{},swapped:true},blackOffset,red);
     return {pieces:replacePieces(new Map([[black.id,borrowed],[red.id,enemy]])),potionSerial:serial};
   }
   if (id==='surround'&&deployment(run).overLimit) return null;
@@ -1498,12 +1518,10 @@ function makePotionPlan() {
     const changes=new Map([[first.id,{...first,inactive:true}],[second.id,{...second,inactive:true}]]);
     const transformed=replacePieces(changes);
     if (result.cells.length) {
+      if (!result.cells.every(([x,y])=>inDefense(result.x+x,result.y+y))) return null;
       const combined={...first,cells:result.cells,marks:result.marks,double:result.double,pickups:result.pickups,
-        x:result.x,y:result.y,slotOffset:undefined,free:id==='intersection',home:{x:result.x,y:result.y},
+        x:result.x,y:result.y,slotOffset:undefined,free:true,home:{x:result.x,y:result.y},
         id:'effect'+serial,inactive:false,sourceCells:new Map()};
-      if (id==='xor') {
-        combined.home={...first.home};
-      } else if (!result.cells.every(([x,y])=>inDefense(result.x+x,result.y+y))) return null;
       transformed.push(combined);
     }
     return {pieces:transformed,potionSerial:serial};
@@ -1514,13 +1532,8 @@ function makePotionPlan() {
     const after=potionShape('cut',first,{...option,before:false});
     if (!before||!after) return null;
     const serial=(run.potionSerial??0)+1, sourceId=first.sourceId??first.id;
-    const isEnemy=first.kind==='enemy';
-    const origin=slotOrigin(first.slot,isEnemy,isEnemy?maxTrayOffset:trayOffset);
-    const part=(shape,id)=>{
-      const home={x:first.home.x+shape.dx,y:first.home.y+shape.dy};
-      const slotOffset={x:home.x-origin.x,y:home.y-origin.y};
-      return {...transformedPiece(first,shape),...home,sourceId,id,home,slotOffset,layoutCells:undefined};
-    };
+    const atHome={...first,...first.home};
+    const part=(shape,id)=>({...transformedPiece(atHome,shape),sourceId,id,layoutCells:undefined});
     const a=part(before,first.id), b=part(after,'cut'+serial);
     return {pieces:[...replacePieces(new Map([[first.id,a]])),b],potionSerial:serial};
   }
@@ -1529,8 +1542,7 @@ function makePotionPlan() {
   if (!shape) return null;
   if (id==='turn'&&!option.turns&&!option.mirror) return null;
   if (!shape.cells.length) return {pieces:replacePieces(new Map([[first.id,{...first,inactive:true,pickups:new Map()}]]))};
-  const updated=transformedPiece(first,shape,id==='align'||id==='turn');
-  if (!pieceFits(updated.cells,updated.x,updated.y)) return null;
+  const updated=transformedPiece(first,shape);
   if (id==='turn'&&first.kind==='card'&&!first.swapped) return turnCardPermanently(first,updated,option);
   return {pieces:replacePieces(new Map([[first.id,updated]]))};
 }
@@ -1556,8 +1568,14 @@ function potionPreviewRun() {
 }
 function confirmPotion() {
   if (!potionChoice||locked||drag||upgradeDrag) return;
-  const {index,id}=potionChoice, plan=makePotionPlan();
+  const {index,id,targets}=potionChoice, plan=makePotionPlan();
   if (!plan||run.potions[index]!==id) return;
+  if (plan.pieces&&!plan.cards) {
+    const changed=run.temporarilyChangedCards??=new Set();
+    for (const piece of run.pieces) {
+      if (piece.kind==='card'&&!piece.swapped&&targets.includes(piece.id)) changed.add(piece.sourceId??piece.id);
+    }
+  }
   run.potions.splice(index,1);
   discardPotion(false);
   Object.assign(run,plan);
@@ -2048,6 +2066,7 @@ function startBattle(run,enemies=enemyCards(run)) {
   delete run.nextEnemySwaps;
   delete run.nextEnemyUsed;
   delete run.damageHalvings;
+  run.temporarilyChangedCards=new Set();
   run.pieces=[...battleCards(run),...makeTray(enemies,'enemy')];
   run.sealNext=new Set();
   run.eatenNext=new Map();
@@ -2154,7 +2173,7 @@ function setSeedFavorite(seed,favorite) {
 
 function newRun(seed,gameMode='standard') {
   const experiment=gameMode==='experiment';
-  seed=experiment ? 1 : seed??seedValue();
+  seed??=seedValue();
   const rng=generator(seed,1,0);
   const shapes=experiment ? testCardShapes(rng) : Array.from({length:3},()=>walk(START_CARD_AREA,3,rng,true));
   const cards=shapes.map((cells,slot)=>({id:'p'+slot,slot,cells}));
@@ -2328,12 +2347,11 @@ function growSmallestCard(run,cards) {
   const smallest=Math.min(...cards.map(card=>card.cells.length));
   const card=randomItem(cards.filter(candidate=>candidate.cells.length===smallest),rng);
   const occupied=new Set(card.cells.map(cell=>key(...cell)));
-  const {w,h}=bounds(card.cells);
+  const {frame,anchor}=cardEditSlot(card);
   const empty=new Map();
   for (const [x,y] of card.cells) for (const [dx,dy] of CARDINAL) {
     const u=x+dx, v=y+dy, id=key(u,v);
-    if (occupied.has(id)||Math.max(u+1,w)-Math.min(u,0)>MAX_PIECE_SPAN||
-        Math.max(v+1,h)-Math.min(v,0)>MAX_PIECE_SPAN) continue;
+    if (occupied.has(id)||!inSlotFrame(frame,anchor.x+u,anchor.y+v)) continue;
     empty.set(id,[u,v]);
   }
   if (!empty.size) return;
@@ -2343,7 +2361,7 @@ function growSmallestCard(run,cards) {
   if (card.double) card.double=shiftedKeys(card.double,shiftX,shiftY);
   if (eaten) run.eatenNext.set(card.id,shiftedKeys(eaten,shiftX,shiftY));
   card.cells=normalize([...card.cells,[u,v]]);
-  card.slotOffset=undefined;
+  card.slotOffset={x:anchor.x+shiftX-frame.x,y:anchor.y+shiftY-frame.y};
 }
 
 function nextRound(run) {
@@ -2402,6 +2420,7 @@ function readRunSave(slot) {
     });
     if (GAME_MODES.includes(save?.run?.gameMode)&&Array.isArray(save.roundStarts)&&Number.isInteger(save.currentSeed)) {
       for (const state of [save.run,...save.roundStarts]) mergeSavedTurnItems(state);
+      if (save.run.gameMode==='experiment'&&Number.isInteger(save.run.seed)) save.currentSeed=save.run.seed;
       return save;
     }
   } catch {}
@@ -3031,8 +3050,11 @@ function movePiece(piece,x,y) {
   const {w,h}=bounds(piece.cells);
   const x0=Math.min(...piece.cells.map(([u])=>u));
   const y0=Math.min(...piece.cells.map(([,v])=>v));
-  piece.x=clamp(Math.round(x),viewLeft-x0,viewRight-w-x0);
-  piece.y=clamp(Math.round(y),-y0,HEIGHT-h-y0);
+  const [left,top,right,bottom]=piece.kind==='enemy'&&piece.free
+    ? [FIELD.x,FIELD.y,FIELD.x+FIELD.size,FIELD.y+FIELD.size]
+    : [viewLeft,0,viewRight,HEIGHT];
+  piece.x=clamp(Math.round(x),left-x0,right-w-x0);
+  piece.y=clamp(Math.round(y),top-y0,bottom-h-y0);
 }
 function returnToSlot(piece) {
   Object.assign(piece,piece.home);
@@ -3409,9 +3431,9 @@ function showRun(next) {
 }
 function beginRun(seed,gameMode,slot=activeSaveSlot) {
   const next=newRun(seed,gameMode);
-  currentSeed=seed;
+  currentSeed=next.seed;
   roundStarts=[structuredClone(next)];
-  rememberSeed(seed);
+  rememberSeed(currentSeed);
   showRun(next);
   if (slot!==activeSaveSlot) selectSaveSlot(slot);
   saveRun();
