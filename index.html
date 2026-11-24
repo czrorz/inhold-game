@@ -2431,17 +2431,10 @@ function startBattle(run,enemies=structuredClone(enemyCards(run))) {
   }
 }
 
-function testCardShapes(seed) {
-  const patterns=[
-    ['..#######..','.########..','.##.....#..','.##.....###','.##.....###','..#######..','..#######..'],
-    ['##.......##','##.......##','##.......##','##.......##','##.......##','###########','###########'],
-    ['....###....','....####...','###########','###########','..###......','..###......']
-  ];
-  const shapes=patterns.map(rows=>normalize(rows.flatMap((row,y)=>
-    [...row].flatMap((cell,x)=>cell==='#'?[[x,y]]:[]))));
-  shapes.push(...Array.from({length:2},(_,index)=>
-    rolledShape(EXPERIMENT_MAX_CARD_AREA,11,.45,generator(seed,EXPERIMENT_START_ROUND,'experimentTile',index),false,true)));
-  return shapes;
+function experimentCardShapes(seed) {
+  const areas=[42,42,35,EXPERIMENT_MAX_CARD_AREA,EXPERIMENT_MAX_CARD_AREA];
+  return areas.map((area,slot)=>
+    rolledShape(area,11,.45,generator(seed,EXPERIMENT_START_ROUND,'experimentTile',slot),false,true));
 }
 
 const GAME_MODES=['standard','advanced','experiment'];
@@ -2498,7 +2491,7 @@ function setSeedFavorite(seed,favorite) {
 function newRun(seed,gameMode='standard') {
   const experiment=gameMode==='experiment';
   seed??=seedValue();
-  const shapes=experiment ? testCardShapes(seed) : Array.from({length:3},(_,index)=>
+  const shapes=experiment ? experimentCardShapes(seed) : Array.from({length:3},(_,index)=>
     walk(START_CARD_AREA,3,generator(seed,1,'startingTile',index),true));
   const cards=shapes.map((cells,slot)=>({id:'p'+slot,slot,cells}));
   const run={seed,gameMode,round:experiment?EXPERIMENT_START_ROUND:1,hp:HP,phase:'battle',reward:null,cards,
