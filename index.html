@@ -206,8 +206,9 @@ dialog::backdrop{background:#3336}h1,h2,p{margin:0}h1,h2,h3{font-weight:400}h1,h
 #hover-tip{position:fixed;z-index:3;margin:0;padding:5px 8px;max-width:26rem;background:#343434;color:#fff;font-size:16px;line-height:1.4;pointer-events:none}
 .quiet{padding:8px 12px;background:transparent;font-size:13px}
 button:focus-visible{text-decoration:underline;text-underline-offset:4px}
-#upgrade{display:none;position:absolute;top:var(--arena-top);left:var(--arena-start);width:var(--arena-w);height:var(--arena-w);align-items:center;justify-content:center;pointer-events:none}
+#upgrade{display:none;position:absolute;top:var(--arena-top);left:var(--arena-start);width:var(--arena-w);height:var(--arena-w);flex-direction:column;align-items:center;justify-content:center;gap:8px;pointer-events:none}
 #frame[data-phase="reward"] #upgrade{display:flex}
+#quick-upgrade{position:relative;top:15%;pointer-events:auto;white-space:nowrap}
 #opening-gift{position:absolute;top:var(--arena-top);left:var(--arena-start);width:var(--arena-w);height:var(--arena-w);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;pointer-events:none}
 #opening-gift[hidden]{display:none}
 #gift-choices{
@@ -351,6 +352,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
  </main>
  <section id="upgrade" data-label="upgrade">
   <div class="options" id="fragments" role="group" data-label="fragments"></div>
+  <button type="button" class="action" id="quick-upgrade" data-text="quickUpgrade" data-label="quickUpgradeRound">快速升级</button>
  </section>
  <section id="opening-gift" aria-labelledby="gift-prompt" hidden>
   <p id="gift-prompt" data-text="giftPrompt">选择一张新牌</p>
@@ -416,7 +418,7 @@ const RANDOM_PURPOSE = {
   tileWear:20, growthTile:21, growthCell:22, giftDensity:23, giftShape:24,
   dissolveTexture:25, dissolveCell:26, enemyPull:27,
   enemyGrowth:28, enemyGrowthVariation:29, enemyHollowBias:30, enemySizeBias:31,
-  enemyStraightness:32
+  enemyStraightness:32, quickUpgrade:33
 };
 
 function splitMix64(value) {
@@ -499,6 +501,7 @@ const MESSAGES = {
     battlefield:'防御场。点左侧选择黑牌，点右侧选择敌人。',
     settle:'结算', settleRound:'结算本场',
     upgrade:'改造黑牌', fragments:'新碎片', advance:'确认\n升级', advanceRound:'确认升级并进入下一场',
+    quickUpgrade:'快速升级', quickUpgradeRound:'随机升级并进入下一场',
     upgradeBoard:'改造。把碎片拖进黑牌方框，框内数字是剩余改造额度。',
     close:'合上', restartTitle:'重新开始', keepPlaying:'继续本局',
     saveSlots:'存档', saveSlot:n=>`存档 ${n}`, restartSlot:'重开本档',
@@ -526,6 +529,7 @@ const MESSAGES = {
     battlefield:'Battlefield. Select tiles on the left or enemies on the right.',
     settle:'Settle', settleRound:'Settle this round',
     upgrade:'Upgrade tiles', fragments:'Fragments', advance:'Confirm\nupgrade', advanceRound:'Confirm upgrades and continue',
+    quickUpgrade:'Quick upgrade', quickUpgradeRound:'Apply random upgrades and continue',
     upgradeBoard:'Upgrade. Drag fragments into tile frames. The number shows each tile’s remaining upgrades.',
     close:'Close', restartTitle:'Restart run', keepPlaying:'Keep playing',
     saveSlots:'Saves', saveSlot:n=>`Slot ${n}`, restartSlot:'Restart slot',
@@ -2072,7 +2076,7 @@ document.addEventListener('pointerdown',event=>{
 document.addEventListener('click',event=>{
   if (!potionChoice||event.target===canvas||$('equip-action').contains(event.target)||
     event.target.closest('.potion-tray,#equip-skills,.game-scrollbar')) return;
-  if ($('advance').contains(event.target)||$('settle').contains(event.target)) event.stopPropagation();
+  if (event.target.closest('#advance,#settle,#quick-upgrade')) event.stopPropagation();
   discardPotion();
 },true);
 document.addEventListener('keydown',event=>{
@@ -4042,6 +4046,7 @@ function updateStatus() {
   $('reset').disabled=locked;
   updateLife();
   $('settle').disabled=locked||run.phase!=='battle'||Boolean(potionChoice);
+  $('quick-upgrade').disabled=locked||Boolean(upgradeDrag);
   updatePlacementStatus();
   updateEquipment();
   const label=message(run.phase==='reward'?'upgradeBoard':'battlefield');
@@ -5216,6 +5221,56 @@ function placeUpgradeFragment(card,index,origin,fragmentCells) {
   placements.push({card:card.id,fragment:index,origin,fragmentCells});
   run.reward.placements=placements;
 }
+function randomUpgradePlacement(slot,occupied,cells,rng) {
+  const {w,h}=bounds(cells);
+  const choices=[];
+  let best=0;
+  for (let y=slot.y-h+1;y<slot.y+MAX_PIECE_SPAN;y++) {
+    for (let x=slot.x-w+1;x<slot.x+MAX_PIECE_SPAN;x++) {
+      const added=cells.filter(([u,v])=>inSlotFrame(slot,x+u,y+v)&&!occupied.has(key(x+u,y+v)));
+      if (!added.length) continue;
+      const touches=added.some(([u,v])=>CARDINAL.some(([dx,dy])=>occupied.has(key(x+u+dx,y+v+dy))));
+      // Keep as many fragment cells as possible and prefer joining an existing cell on ties.
+      const score=2*added.length+Number(touches);
+      if (score<best) continue;
+      if (score>best) {choices.length=0;best=score;}
+      choices.push({origin:[x,y],fragmentCells:added});
+    }
+  }
+  return randomItem(choices,rng);
+}
+function applyQuickUpgrades() {
+  const {fragments,placements}=run.reward;
+  const used=new Set(placements.map(placement=>placement.fragment));
+  const unused=Array.from(fragments.keys()).filter(index=>!used.has(index));
+  const rng=generator(run.seed,run.round,'quickUpgrade');
+  const targets=run.pieces.filter(card=>card.kind==='card'&&remainingUpgrades(card)>0).map(card=>{
+    const {x,y}=card.home;
+    const occupied=new Set(card.cells.map(([u,v])=>key(x+u,y+v)));
+    for (const patch of placements) {
+      if (patch.card!==card.id) continue;
+      const [px,py]=patch.origin;
+      for (const [u,v] of patch.fragmentCells) occupied.add(key(px+u,py+v));
+    }
+    return {card,slot:slotOrigin(card.slot,false,trayOffset),occupied};
+  });
+  while (unused.length&&targets.length) {
+    const targetIndex=rangeInt(0,targets.length-1,rng);
+    const fragmentIndex=rangeInt(0,unused.length-1,rng);
+    const {card,slot,occupied}=targets[targetIndex];
+    const fragment=unused[fragmentIndex];
+    const placement=randomUpgradePlacement(slot,occupied,fragments[fragment],rng);
+    if (!placement) {
+      targets.splice(targetIndex,1);
+      continue;
+    }
+    const {origin,fragmentCells}=placement;
+    placeUpgradeFragment(card,fragment,origin,fragmentCells);
+    unused.splice(fragmentIndex,1);
+    for (const [u,v] of fragmentCells) occupied.add(key(origin[0]+u,origin[1]+v));
+    if (remainingUpgrades(card)<=0) targets.splice(targetIndex,1);
+  }
+}
 function drawUpgradeFragment(cells,[x,y],held,occupied) {
   const color=dragColor(upgradeColors.fragment,held);
   for (const [u,v] of cells) {
@@ -5267,12 +5322,13 @@ function upgradeHint() {
   }
   return message('upgradeHint');
 }
-$('advance').onclick=()=>{
-  if (run.phase!=='reward') return;
+function advanceRound(quick=false) {
+  if (run.phase!=='reward'||(quick&&upgradeDrag)) return;
   discardPotion(false);
   upgradeDrag=null;
   selected=null;giftNotice=0;
   setMode('');
+  if (quick) applyQuickUpgrades();
   nextRound(run);
   if (run.round===SEED_MILESTONE_ROUND) recordSeed(run.seed,run.round);
   locked=Boolean(run.pendingGift);
@@ -5284,7 +5340,9 @@ $('advance').onclick=()=>{
     saveBattleStart();
     canvas.focus({preventScroll:true});
   }
-};
+}
+$('advance').onclick=()=>advanceRound();
+$('quick-upgrade').onclick=()=>advanceRound(true);
 $('info-body').addEventListener('scroll',()=>{
   const list=$('info-body').querySelector('.potion-guide');
   if (list) snapPotionIcons(list);
