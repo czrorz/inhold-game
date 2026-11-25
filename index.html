@@ -3203,7 +3203,7 @@ let currentSeed,run,roundStarts,unit=1,pixelRatio=1,mode='',selected=null,drag=n
 let locked=false, frameAnimation=0, giftNotice=0, giftTimer=0, showLimitHint=false;
 let settleAfterGiftAt=0;
 let displayedHp=null;
-let showHeldPieceOutline=false;
+let showHeldPieceOutline=true;
 const DISSOLVE_PATTERNS=8;
 const dissolveFrames=new Map();
 let upgradeDrag=null;
@@ -4036,7 +4036,7 @@ function updatePlacementStatus() {
 function updateStatus() {
   const level=$('level');
   if (frame.dataset.phase!==run.phase) frame.dataset.phase=run.phase;
-  const levelText=String(run.round).padStart(2,'0')+'/'+ROUNDS;
+  const levelText=String(run.round).padStart(2,'0');
   if (level.textContent!==levelText) level.textContent=levelText;
   $('save-slots').disabled=locked;
   $('reset').disabled=locked;
@@ -5296,7 +5296,7 @@ async function startGame() {
   try {
     if (saveDb) [storedSlot,storedSeeds,storedOutline]=await readSaveValues([ACTIVE_SAVE_KEY,SEED_HISTORY_KEY,HELD_PIECE_OUTLINE_KEY]);
   } catch {saveUnavailable=true;saveDb=null;}
-  showHeldPieceOutline=storedOutline===true;
+  showHeldPieceOutline=storedOutline!==false;
   const lastSlot=storedSlot??readSavedValue(ACTIVE_SAVE_KEY);
   if (Number.isInteger(lastSlot)&&lastSlot>=0&&lastSlot<SAVE_SLOT_COUNT) activeSaveSlot=lastSlot;
   recentSeeds=loadSeedHistory(storedSeeds);
