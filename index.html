@@ -410,8 +410,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       const liftedNote = VOICING_OCTAVE_LIFTS[index];
       return chord.map(note => note === liftedNote ? note + 12 : note).sort((a, b) => a - b);
     });
-    // Em7, Em(add9), Cmaj7/E.
-    const OPENING_CHORDS = [4, 0, 1];
+    const OPENING_ACCOMPANIMENTS = ['drums', 'left', 'both'];
     const TRANSITIONS = [[1, 4], [2, 4], [1, 3], [2, 4], [0, 1, 3]];
     const OFFSETS = [0, 12, 19, 24];
     const PITCHES = [...new Set([...CHORDS, ...ALTERNATE_VOICINGS].flat())].sort((a, b) => a - b);
@@ -853,7 +852,12 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       const toneRng = new PythonRandom(toneKey);
       const noiseRng = new PythonRandom(noiseKey);
       const dynamicsRng = new PythonRandom(dynamicsKey);
-      const opening = OPENING_CHORDS[Math.floor(Math.random() * OPENING_CHORDS.length)];
+      const opening = Math.floor(Math.random() * CHORDS.length);
+      const openingParts = OPENING_ACCOMPANIMENTS[Math.floor(Math.random() * OPENING_ACCOMPANIMENTS.length)];
+      const openingDelay = 3 + Math.floor(Math.random() * 2);
+      const firstLeftBar = openingParts === 'drums' ? openingDelay : 0;
+      const firstDrumBar = openingParts === 'left' ? openingDelay : 0;
+      const firstRightBar = Math.max(firstLeftBar, firstDrumBar) + 1 + Math.floor(Math.random() * 2);
       const harmony = chords(rng, seed, opening, new PythonRandom(voicingKey),
         new PythonRandom(leftPitchKey), new PythonRandom(rightPitchKey), new PythonRandom(breakKey));
       const leftAccents = leftSecondAccents(new PythonRandom(leftRhythmKey));
@@ -926,8 +930,11 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         }
         previousNoise = noiseLevel;
 
-        const rightEntered = bar >= 2;
-        const [leftReplies, rightReplies] = rightEntered ? replies.next().value : [false, false];
+        const leftEntered = bar >= firstLeftBar;
+        const drumsEntered = bar >= firstDrumBar;
+        const rightEntered = bar >= firstRightBar;
+        // Keep the reply plan on its usual timeline while the opening voices enter.
+        const [leftReplies, rightReplies] = bar >= 2 ? replies.next().value : [false, false];
         const { secondKickStep, hatPickup } = drums.next().value;
         const swapRegisters = registerSwaps.next().value;
         const leftNoteStart = swapRegisters ? 3 : 2;
@@ -945,7 +952,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
             rightCycleLength = rightCycles.next().value;
             rightInVariation = varyRight;
           }
-          const leftAccent = leftCycleStep === 1 || leftCycleStep === leftSecondAccent;
+          const leftAccent = leftEntered && (leftCycleStep === 1 || leftCycleStep === leftSecondAccent);
           const rightPickup = rightInVariation && rightCycleStep === 6;
           const rightAccent = rightEntered && (
             rightInVariation
@@ -954,7 +961,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
           );
           const gap = !(leftAccent || rightAccent);
           const canReplyLeft = leftReplies && gap && previousRight && !previousLeft;
-          const canReplyRight = rightReplies && gap && previousLeft && !previousRight;
+          const canReplyRight = rightEntered && rightReplies && gap && previousLeft && !previousRight;
           const density = replyDensities.next().value;
           if (canReplyLeft || canReplyRight) replyCredit += density;
           const playReply = replyCredit >= 1;
@@ -965,7 +972,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
             plucksResting ? 0 : breakBar === LEFT_RETURN_BAR ? progress : 1;
           const rightLevel = leaving ? restFadeOut(breakPosition) :
             rightReturning ? progress : breakBar >= PLUCK_REST_START_BAR ? 0 : 1;
-          const drumLevel = leaving ? restFadeOut(breakPosition - DRUM_FADE_DELAY) : rightLevel;
+          const drumLevel = drumsEntered ? (leaving ? restFadeOut(breakPosition - DRUM_FADE_DELAY) : rightLevel) : 0;
           const leftStrength = leftDynamics.next().value * leftLevel;
           const rightStrength = rightDynamics.next().value * (rightPickup ? 0.55 : 1) * rightLevel;
           for (const [accent, reply, notes, pan, strength, pickOffset] of [
