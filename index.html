@@ -421,10 +421,8 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
     const REST_FADE_BARS = 8;
     const LEFT_FADE_DELAY = 2;
     const DRUM_FADE_DELAY = 4;
-    const PLUCK_REST_BARS = 8;
     const PLUCK_REST_START_BAR = DRUM_FADE_DELAY + REST_FADE_BARS;
-    const PLUCK_RETURN_BAR = PLUCK_REST_START_BAR + PLUCK_REST_BARS;
-    const KICK_RETURN_BAR = PLUCK_RETURN_BAR + 2;
+    const KICK_RETURN_DELAY = 2;
     const CHORDS = [
       [40, 47, 55, 59, 64, 66],
       [40, 48, 55, 59, 64, 67],
@@ -551,17 +549,14 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
 
     let requestedHarmonySeed;
 
-    function* chords(rng, seed, opening, voicingRng, leftPitchRng, rightPitchRng, breakRng) {
+    function* chords(rng, seed, opening, voicingRng, leftPitchRng, rightPitchRng) {
       let index = opening;
       let originalIndex = opening;
       let harmonySeed = seed;
       let transitionRng;
-      let chordsUntilBreak = breakRng.integer(5, 8);
       while (true) {
         const length = rng.integer(4, 8);
         const chord = CHORDS[index];
-        const chordBreak = chordsUntilBreak === 0;
-        if (chordBreak) chordsUntilBreak = breakRng.integer(5, 8);
         const alternateBars = Math.min(length - 2, voicingRng.choice([0, 0, 2, 3]));
         const regularBars = length - alternateBars;
         const leftPitchChances = pluckPitchChances(leftPitchRng, length);
@@ -571,12 +566,10 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
           yield {
             chord, voicing,
             startsChord: bar === 0,
-            startsPluckRest: chordBreak && bar === 0,
             leftPitchChance: leftPitchChances[bar] ?? 0,
             rightPitchChance: rightPitchChances[bar] ?? 0,
           };
         }
-        chordsUntilBreak--;
         // Keep the audition's shared random sequence for rhythm and chord lengths.
         originalIndex = rng.choice(TRANSITIONS[originalIndex]);
         if (requestedHarmonySeed !== harmonySeed) {
@@ -1076,7 +1069,8 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       const firstDrumBar = openingParts === 'left' ? openingDelay : 0;
       const firstRightBar = Math.max(firstLeftBar, firstDrumBar) + 1 + Math.floor(Math.random() * 2);
       const harmony = chords(rng, seed, opening, new PythonRandom(voicingKey),
-        new PythonRandom(leftPitchKey), new PythonRandom(rightPitchKey), new PythonRandom(breakKey));
+        new PythonRandom(leftPitchKey), new PythonRandom(rightPitchKey));
+      const breakRng = new PythonRandom(breakKey);
       const leftRhythmRng = new PythonRandom(leftRhythmKey);
       const leftBaseRhythm = pluckRhythm(leftRhythmRng, 5, 3);
       const rightRhythmRng = new PythonRandom(rightVariationKey);
@@ -1123,7 +1117,8 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       let chordsUntilVibrato = 3 + Math.floor(Math.random() * 4);
       let vibrato;
       let breakBar = -1;
-      let restPending = false;
+      let nextBreakBar = Infinity;
+      let pluckReturnBar = Infinity;
       let previousLeft = false;
       let previousRight = false;
       let leftRhythm = leftBaseRhythm;
@@ -1144,7 +1139,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       let slowL = 0, brightL = 0, slowR = 0, brightR = 0;
 
       return function nextBar(left, right) {
-        const { chord, voicing, startsChord, startsPluckRest, leftPitchChance, rightPitchChance } = harmony.next().value;
+        const { chord, voicing, startsChord, leftPitchChance, rightPitchChance } = harmony.next().value;
         if (startsChord && chordsUntilVibrato-- === 0) {
           chordsUntilVibrato = 3 + Math.floor(Math.random() * 4);
           const start = bar * FRAMES + Math.round((2 + Math.random()) * RATE);
@@ -1153,17 +1148,20 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
           const cents = 4 + 2 * Math.random();
           vibrato = { note: voicing.at(-1), start, end, rate, depth: (2 ** (cents / 1200) - 1) / rate };
         }
-        restPending ||= startsPluckRest;
-        if (restPending && startsChord && breakBar < 0) {
+        if (startsChord && breakBar < 0 && bar >= nextBreakBar) {
           breakBar = 0;
-          restPending = false;
+          const quietBars = breakRng.integer(22, 34);
+          pluckReturnBar = PLUCK_REST_START_BAR + quietBars;
         }
         const leaving = breakBar >= 0 && breakBar < PLUCK_REST_START_BAR;
-        const plucksResting = breakBar >= PLUCK_REST_START_BAR && breakBar < PLUCK_RETURN_BAR;
-        const leftReturning = breakBar === PLUCK_RETURN_BAR;
-        const kickReturned = breakBar >= KICK_RETURN_BAR;
-        const bandReturning = breakBar > KICK_RETURN_BAR && startsChord;
-        if (leftReturning) leftEntry = newPluckEntry();
+        const plucksResting = breakBar >= PLUCK_REST_START_BAR && breakBar < pluckReturnBar;
+        const kickReturnBar = pluckReturnBar + KICK_RETURN_DELAY;
+        const kickReturned = breakBar >= kickReturnBar;
+        const bandReturning = breakBar > kickReturnBar && startsChord;
+        if (breakBar === pluckReturnBar) {
+          leftEntry = newPluckEntry();
+          nextBreakBar = Infinity;
+        }
         if (bandReturning) rightEntry = newPluckEntry();
         // Every drum and pluck fits within its bar, including the delayed second note.
         left.fill(0);
@@ -1291,6 +1289,10 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
           previousRight = rightAccent;
           leftCycleStep = (leftCycleStep + 1) % leftCycleLength;
           rightCycleStep = (rightCycleStep + 1) % rightCycleLength;
+        }
+
+        if (pluckEvents.length && nextBreakBar === Infinity) {
+          nextBreakBar = bar + breakRng.integer(12, 18);
         }
 
         for (const { step, accent, notes, raisedSecond, pan, pickOffset, strength } of pluckEvents) {
