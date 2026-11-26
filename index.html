@@ -432,6 +432,9 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       [40, 50, 57, 62, 64, 69],
       [40, 50, 55, 59, 64, 67],
     ];
+    const CHORD_ACCENT_NOTES = [[55], [55], [57], [50, 57], [50]];
+    const CHORD_ACCENT_GAIN = 10 ** (0.8 / 20);
+    const CHORD_COLOR_GAIN = 10 ** (-1 / 20);
     const VOICING_OCTAVE_LIFTS = [59, 59, 57, 62, 50];
     const ALTERNATE_VOICINGS = CHORDS.map((chord, index) => {
       const liftedNote = VOICING_OCTAVE_LIFTS[index];
@@ -758,7 +761,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       fadeBetweenBeats(0, 1.5), fadeBetweenBeats(0.5, 3), fadeBetweenBeats(0.25, 2.25),
     ];
 
-    function chordTables(chord, time, motion, { tables, waveforms }) {
+    function chordTables(chord, accentNotes, colorAmount, time, motion, { tables, waveforms }) {
       const bands = new Map();
       for (const note of chord) {
         for (const offset of OFFSETS) {
@@ -767,6 +770,8 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         }
       }
       const swell = 1 + 0.17 * softTriangle(time / 19 + 0.19);
+      const accentGain = CHORD_ACCENT_GAIN ** colorAmount;
+      const colorGain = CHORD_COLOR_GAIN ** colorAmount;
       tables.clear();
       for (const [slot, note] of chord.entries()) {
         const [levelPeriod, levelPhase] = motion.get(note)[0];
@@ -785,7 +790,10 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
           table[i] = sample;
           power += sample * sample;
         }
-        const gain = level * 0.74 / Math.sqrt(power / TABLE_SIZE);
+        const pitchClass = note % 12;
+        const colorNote = pitchClass === 0 || pitchClass === 6; // C and F-sharp.
+        const voiceGain = colorNote ? colorGain : accentNotes.includes(note) ? accentGain : 1;
+        const gain = level * 0.74 * voiceGain / Math.sqrt(power / TABLE_SIZE);
         for (let i = 0; i < TABLE_SIZE; i++) table[i] *= gain;
         table[TABLE_SIZE] = table[0];
         tables.set(note, table);
@@ -1045,6 +1053,8 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       const motion = new Map(PITCHES.map(note => [note,
         Array.from({ length: 5 }, () => [toneRng.uniform(6, 17), toneRng.random()])
       ]));
+      const chordColorPeriod = 48 + 24 * Math.random();
+      const chordColorPhase = Math.random();
       const kick = drum('kick');
       const snare = drum('snare');
       const hat = drum('hat');
@@ -1106,7 +1116,10 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         left.fill(0);
         right.fill(0);
         const time = (bar + 1) * FRAMES / RATE;
-        const tables = chordTables(voicing, time, motion, tableBanks[bar % 2]);
+        const accentNotes = CHORD_ACCENT_NOTES[CHORDS.indexOf(chord)]
+          .map(note => voicing.includes(note) ? note : note + 12);
+        const colorAmount = 0.625 + 0.375 * softTriangle(time / chordColorPeriod + chordColorPhase);
+        const tables = chordTables(voicing, accentNotes, colorAmount, time, motion, tableBanks[bar % 2]);
         mixChord(left, right, tables, tableBanks[(bar + 1) % 2].tables, bar, change, vibrato);
 
         const noiseLevel = 0.05 + 0.003 * softTriangle(time / 14 + 0.37);
