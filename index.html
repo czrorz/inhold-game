@@ -423,8 +423,8 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
     const DRUM_FADE_DELAY = 4;
     const PLUCK_REST_BARS = 8;
     const PLUCK_REST_START_BAR = DRUM_FADE_DELAY + REST_FADE_BARS;
-    const LEFT_RETURN_BAR = PLUCK_REST_START_BAR + PLUCK_REST_BARS;
-    const KICK_RETURN_BAR = LEFT_RETURN_BAR + 2;
+    const PLUCK_RETURN_BAR = PLUCK_REST_START_BAR + PLUCK_REST_BARS;
+    const KICK_RETURN_BAR = PLUCK_RETURN_BAR + 2;
     const CHORDS = [
       [40, 47, 55, 59, 64, 66],
       [40, 48, 55, 59, 64, 67],
@@ -539,14 +539,14 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       }
     }
 
-    function pluckPitchChanges(rng, regularBars) {
-      if (regularBars < 5) return [];
-      const variedBars = Math.min(regularBars - 3, rng.choice([0, 0, 2, 3]));
-      if (!variedBars) return [];
-      const start = rng.integer(2, regularBars - variedBars - 1);
-      const changes = Array(regularBars).fill(false);
-      changes.fill(true, start, start + variedBars);
-      return changes;
+    function pluckPitchChances(rng, length) {
+      if (rng.random() < 0.5) return [];
+      const variedBars = rng.integer(1, length);
+      const start = rng.integer(0, length - variedBars);
+      const chances = Array(length).fill(0);
+      const raisedChance = 0.65 + 0.30 * rng.random();
+      chances.fill(raisedChance, start, start + variedBars);
+      return chances;
     }
 
     let requestedHarmonySeed;
@@ -564,16 +564,16 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         if (chordBreak) chordsUntilBreak = breakRng.integer(5, 8);
         const alternateBars = Math.min(length - 2, voicingRng.choice([0, 0, 2, 3]));
         const regularBars = length - alternateBars;
-        const leftPitchChanges = pluckPitchChanges(leftPitchRng, regularBars);
-        const rightPitchChanges = pluckPitchChanges(rightPitchRng, regularBars);
+        const leftPitchChances = pluckPitchChances(leftPitchRng, length);
+        const rightPitchChances = pluckPitchChances(rightPitchRng, length);
         for (let bar = 0; bar < length; bar++) {
           const voicing = bar >= regularBars ? ALTERNATE_VOICINGS[index] : chord;
           yield {
             chord, voicing,
             startsChord: bar === 0,
             startsPluckRest: chordBreak && bar === 0,
-            leftPitchChange: leftPitchChanges[bar] ?? false,
-            rightPitchChange: rightPitchChanges[bar] ?? false,
+            leftPitchChance: leftPitchChances[bar] ?? 0,
+            rightPitchChance: rightPitchChances[bar] ?? 0,
           };
         }
         chordsUntilBreak--;
@@ -587,31 +587,69 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       }
     }
 
-    function* leftSecondAccents(rng) {
+    function addWeakPluck(rhythm, rng) {
+      const emptySteps = [];
+      for (const [step, strength] of rhythm.entries()) if (!strength) emptySteps.push(step);
+      rhythm[rng.choice(emptySteps)] = 0.55;
+    }
+
+    function pluckRhythm(rng, cycleLength, maxNotes) {
+      const rhythm = new Float32Array(cycleLength);
+      const first = rng.integer(0, cycleLength - 1);
+      const second = (first + rng.integer(1, cycleLength - 1)) % cycleLength;
+      rhythm[first] = 1;
+      rhythm[second] = 1;
+      for (let weak = rng.integer(0, maxNotes - 2); weak > 0; weak--) addWeakPluck(rhythm, rng);
+      return rhythm;
+    }
+
+    function* pluckCycleShifts(rng, minCycles, maxCycles) {
       while (true) {
-        const regularCycles = rng.integer(14, 22);
-        const delayedCycles = rng.integer(3, 4);
-        for (let cycle = 0; cycle < regularCycles + delayedCycles; cycle++) {
-          yield cycle < regularCycles ? 3 : 4;
+        const regularCycles = rng.integer(minCycles, maxCycles);
+        for (let cycle = 0; cycle < regularCycles; cycle++) yield 0;
+        yield rng.random() < 0.5 ? -1 : 1;
+      }
+    }
+
+    function* pluckRhythmVariations(rng, regular, maxNotes) {
+      const moves = [];
+      let count = 0;
+      for (const [step, strength] of regular.entries()) {
+        if (!strength) continue;
+        count++;
+        const before = (step + regular.length - 1) % regular.length;
+        const after = (step + 1) % regular.length;
+        if (!regular[before]) moves.push([step, before]);
+        if (!regular[after]) moves.push([step, after]);
+      }
+      while (true) {
+        const regularBars = rng.integer(12, 20);
+        for (let bar = 0; bar < regularBars; bar++) yield regular;
+        const varied = regular.slice();
+        const [from, to] = rng.choice(moves);
+        varied[to] = varied[from];
+        varied[from] = 0;
+        if (count < maxNotes) addWeakPluck(varied, rng);
+        const variedBars = rng.integer(3, 5);
+        for (let bar = 0; bar < variedBars; bar++) yield varied;
+      }
+    }
+
+    function newPluckEntry() {
+      return { skip: Math.floor(Math.random() * 3), firstStep: null };
+    }
+
+    function pluckEntryLevel(entry, hit, step) {
+      if (entry.firstStep === null) {
+        if (!hit) return 0;
+        if (entry.skip > 0) {
+          entry.skip--;
+          return 0;
         }
+        entry.firstStep = step;
       }
-    }
-
-    function* rightCycleLengths(rng) {
-      while (true) {
-        const aligned = rng.integer(3, 6);
-        const early = rng.integer(2, 4);
-        yield* [...Array(aligned).fill(7), 6, ...Array(early).fill(7), 8];
-      }
-    }
-
-    function* pluckRhythmVariations(rng) {
-      while (true) {
-        const regularBars = rng.integer(20, 32);
-        for (let bar = 0; bar < regularBars; bar++) yield false;
-        const variedBars = rng.integer(4, 6);
-        for (let bar = 0; bar < variedBars; bar++) yield true;
-      }
+      const progress = Math.min(1, (step - entry.firstStep) / 8);
+      return 0.22 + 0.78 * progress * progress * (3 - 2 * progress);
     }
 
     function* replyPlan(rng) {
@@ -1039,10 +1077,14 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       const firstRightBar = Math.max(firstLeftBar, firstDrumBar) + 1 + Math.floor(Math.random() * 2);
       const harmony = chords(rng, seed, opening, new PythonRandom(voicingKey),
         new PythonRandom(leftPitchKey), new PythonRandom(rightPitchKey), new PythonRandom(breakKey));
-      const leftAccents = leftSecondAccents(new PythonRandom(leftRhythmKey));
-      const rightCycles = rightCycleLengths(rng);
-      const leftVariations = pluckRhythmVariations(new PythonRandom(leftVariationKey));
-      const rightVariations = pluckRhythmVariations(new PythonRandom(rightVariationKey));
+      const leftRhythmRng = new PythonRandom(leftRhythmKey);
+      const leftBaseRhythm = pluckRhythm(leftRhythmRng, 5, 3);
+      const rightRhythmRng = new PythonRandom(rightVariationKey);
+      const rightBaseRhythm = pluckRhythm(rightRhythmRng, 7, 4);
+      const leftRhythms = pluckRhythmVariations(new PythonRandom(leftVariationKey), leftBaseRhythm, 3);
+      const rightRhythms = pluckRhythmVariations(rightRhythmRng, rightBaseRhythm, 4);
+      const leftShifts = pluckCycleShifts(leftRhythmRng, 7, 13);
+      const rightShifts = pluckCycleShifts(rng, 5, 9);
       const replies = replyPlan(rng);
       const replyDensities = replyDensity(new PythonRandom(replyDensityKey));
       const leftDynamics = pluckDynamics(dynamicsRng);
@@ -1084,17 +1126,25 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       let restPending = false;
       let previousLeft = false;
       let previousRight = false;
-      let leftCycleStep = 0;
-      let leftSecondAccent;
-      let rightCycleStep = 0;
-      let rightCycleLength;
-      let rightInVariation = false;
+      let leftRhythm = leftBaseRhythm;
+      let leftCycleLength = leftRhythm.length;
+      let leftCycleStep = Math.floor(Math.random() * leftRhythm.length);
+      let leftSkippedRest = Infinity;
+      let rightRhythm = rightBaseRhythm;
+      let rightCycleLength = rightRhythm.length;
+      let rightCycleStep = Math.floor(Math.random() * rightCycleLength);
+      let rightSkippedRest = Infinity;
+      if (leftCycleStep === 0 && rightCycleStep === 0) {
+        rightCycleStep = 1 + Math.floor(Math.random() * (rightCycleLength - 1));
+      }
+      let leftEntry = newPluckEntry();
+      let rightEntry = newPluckEntry();
       let replyCredit = 0.5;
       const pinkL = createPinkNoiseFilter(), pinkR = createPinkNoiseFilter();
       let slowL = 0, brightL = 0, slowR = 0, brightR = 0;
 
       return function nextBar(left, right) {
-        const { chord, voicing, startsChord, startsPluckRest, leftPitchChange, rightPitchChange } = harmony.next().value;
+        const { chord, voicing, startsChord, startsPluckRest, leftPitchChance, rightPitchChance } = harmony.next().value;
         if (startsChord && chordsUntilVibrato-- === 0) {
           chordsUntilVibrato = 3 + Math.floor(Math.random() * 4);
           const start = bar * FRAMES + Math.round((2 + Math.random()) * RATE);
@@ -1109,9 +1159,12 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
           restPending = false;
         }
         const leaving = breakBar >= 0 && breakBar < PLUCK_REST_START_BAR;
-        const plucksResting = breakBar >= PLUCK_REST_START_BAR && breakBar < LEFT_RETURN_BAR;
+        const plucksResting = breakBar >= PLUCK_REST_START_BAR && breakBar < PLUCK_RETURN_BAR;
+        const leftReturning = breakBar === PLUCK_RETURN_BAR;
         const kickReturned = breakBar >= KICK_RETURN_BAR;
-        const rightReturning = breakBar > KICK_RETURN_BAR && startsChord;
+        const bandReturning = breakBar > KICK_RETURN_BAR && startsChord;
+        if (leftReturning) leftEntry = newPluckEntry();
+        if (bandReturning) rightEntry = newPluckEntry();
         // Every drum and pluck fits within its bar, including the delayed second note.
         left.fill(0);
         right.fill(0);
@@ -1155,51 +1208,60 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         const swapRegisters = registerSwaps.next().value;
         const leftNoteStart = swapRegisters ? 3 : 2;
         const rightNoteStart = swapRegisters ? 2 : 3;
-        const leftNotes = [chord[leftNoteStart], chord[leftNoteStart + (leftPitchChange ? 2 : 1)]];
-        const rightNotes = [chord[rightNoteStart], chord[rightNoteStart + (rightPitchChange ? 2 : 1)]];
-        const varyLeft = leftVariations.next().value;
-        const varyRight = rightVariations.next().value;
+        const leftNotes = chord.slice(leftNoteStart, leftNoteStart + 3);
+        const rightNotes = chord.slice(rightNoteStart, rightNoteStart + 3);
+        const nextLeftRhythm = leftRhythms.next().value;
+        const nextRightRhythm = rightRhythms.next().value;
         pluckEvents.length = 0;
         pluckCounts.fill(0);
         for (let step = 0; step < 8; step++) {
           if (leftCycleStep === 0) {
-            const regularSecondAccent = leftAccents.next().value;
-            leftSecondAccent = varyLeft ? 2 : regularSecondAccent;
+            leftRhythm = nextLeftRhythm;
+            const shift = leftShifts.next().value;
+            leftCycleLength = leftRhythm.length + shift;
+            leftSkippedRest = shift < 0 ? leftRhythm.lastIndexOf(0) : Infinity;
           }
           if (rightCycleStep === 0) {
-            rightCycleLength = rightCycles.next().value;
-            rightInVariation = varyRight;
+            rightRhythm = nextRightRhythm;
+            const shift = rightShifts.next().value;
+            rightCycleLength = rightRhythm.length + shift;
+            rightSkippedRest = shift < 0 ? rightRhythm.lastIndexOf(0) : Infinity;
           }
-          const leftAccent = leftEntered && (leftCycleStep === 1 || leftCycleStep === leftSecondAccent);
-          const rightPickup = rightInVariation && rightCycleStep === 6;
-          const rightAccent = rightEntered && (
-            rightInVariation
-              ? rightCycleStep === 0 || rightCycleStep === 3 || rightPickup
-              : rightCycleStep === 1 || rightCycleStep === 4
-          );
+          const leftExtraRest = leftCycleStep >= leftRhythm.length;
+          const rightExtraRest = rightCycleStep >= rightRhythm.length;
+          const leftRhythmStep = leftCycleStep >= leftSkippedRest ? leftCycleStep + 1 : leftCycleStep;
+          const rightRhythmStep = rightCycleStep >= rightSkippedRest ? rightCycleStep + 1 : rightCycleStep;
+          const leftStroke = leftRhythm[leftRhythmStep] ?? 0;
+          const rightStroke = rightRhythm[rightRhythmStep] ?? 0;
+          const progress = step / 8;
+          const breakPosition = breakBar + progress;
+          const bandLevel = bandReturning ? progress : breakBar >= PLUCK_REST_START_BAR ? 0 : 1;
+          const leftLevel = leaving ? restFadeOut(breakPosition - LEFT_FADE_DELAY) : plucksResting ? 0 : 1;
+          const rightLevel = leaving ? restFadeOut(breakPosition) :
+            breakBar >= PLUCK_REST_START_BAR && !bandReturning ? 0 : 1;
+          const drumLevel = drumsEntered ? (leaving ? restFadeOut(breakPosition - DRUM_FADE_DELAY) : bandLevel) : 0;
+          const absoluteStep = bar * 8 + step;
+          const leftEntrance = leftEntered && leftLevel ? pluckEntryLevel(leftEntry, leftStroke, absoluteStep) : 0;
+          const rightEntrance = rightEntered && rightLevel ? pluckEntryLevel(rightEntry, rightStroke, absoluteStep) : 0;
+          const leftAccent = leftEntrance > 0 && leftStroke > 0;
+          const rightAccent = rightEntrance > 0 && rightStroke > 0;
           const gap = !(leftAccent || rightAccent);
-          const canReplyLeft = leftReplies && gap && previousRight && !previousLeft;
-          const canReplyRight = rightEntered && rightReplies && gap && previousLeft && !previousRight;
+          const canReplyLeft = !leftExtraRest && leftEntrance > 0 && leftReplies && gap && previousRight && !previousLeft;
+          const canReplyRight = !rightExtraRest && rightEntrance > 0 && rightReplies && gap && previousLeft && !previousRight;
           const density = replyDensities.next().value;
           if (canReplyLeft || canReplyRight) replyCredit += density;
           const playReply = replyCredit >= 1;
           if (playReply) replyCredit -= 1;
-          const progress = step / 8;
-          const breakPosition = breakBar + progress;
-          const leftLevel = leaving ? restFadeOut(breakPosition - LEFT_FADE_DELAY) :
-            plucksResting ? 0 : breakBar === LEFT_RETURN_BAR ? progress : 1;
-          const rightLevel = leaving ? restFadeOut(breakPosition) :
-            rightReturning ? progress : breakBar >= PLUCK_REST_START_BAR ? 0 : 1;
-          const drumLevel = drumsEntered ? (leaving ? restFadeOut(breakPosition - DRUM_FADE_DELAY) : rightLevel) : 0;
-          const leftStrength = leftDynamics.next().value * leftLevel;
-          const rightStrength = rightDynamics.next().value * (rightPickup ? 0.55 : 1) * rightLevel;
-          for (const [accent, reply, notes, pan, strength, pickOffset, phrase] of [
-            [leftAccent, canReplyLeft && playReply, leftNotes, -0.35, leftStrength, PLUCK_POSITION_OFFSET, leftPhrases],
-            [rightAccent, canReplyRight && playReply, rightNotes, 0.35, rightStrength, -PLUCK_POSITION_OFFSET, rightPhrases],
+          const leftStrength = leftDynamics.next().value * leftLevel * leftEntrance * (leftStroke || 1);
+          const rightStrength = rightDynamics.next().value * rightLevel * rightEntrance * (rightStroke || 1);
+          for (const [accent, reply, notes, pan, strength, pickOffset, phrase, pitchChance] of [
+            [leftAccent, canReplyLeft && playReply, leftNotes, -0.35, leftStrength, PLUCK_POSITION_OFFSET, leftPhrases, leftPitchChance],
+            [rightAccent, canReplyRight && playReply, rightNotes, 0.35, rightStrength, -PLUCK_POSITION_OFFSET, rightPhrases, rightPitchChance],
           ]) {
             if ((!accent && !reply) || !strength) continue;
+            const raisedSecond = pitchChance > 0 && Math.random() < pitchChance;
             pluckCounts[step]++;
-            pluckEvents.push({ step, accent, notes, pan, pickOffset, strength: strength * phrase.next().value });
+            pluckEvents.push({ step, accent, notes, raisedSecond, pan, pickOffset, strength: strength * phrase.next().value });
           }
           const kickLevel = step === 0 && kickReturned ? 1 : drumLevel;
           if (kickLevel && (step === 0 || (step === secondKickStep && !drumFill?.omitSecondKick))) {
@@ -1227,11 +1289,11 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
           }
           previousLeft = leftAccent;
           previousRight = rightAccent;
-          leftCycleStep = (leftCycleStep + 1) % 5;
+          leftCycleStep = (leftCycleStep + 1) % leftCycleLength;
           rightCycleStep = (rightCycleStep + 1) % rightCycleLength;
         }
 
-        for (const { step, accent, notes, pan, pickOffset, strength } of pluckEvents) {
+        for (const { step, accent, notes, raisedSecond, pan, pickOffset, strength } of pluckEvents) {
           const duration = STEP * (accent ? 0.94 : 0.48);
           const stroke = Math.random();
           const strokeGain = 10 ** ((stroke - 0.5) / 20);
@@ -1241,8 +1303,8 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
           const secondDelay = 0.006 + 0.007 * spacing;
           const closeTogether = pluckCounts[step] > 1 || pluckCounts[step + 1] > 0;
           const trim = closeTogether ? Math.round(RATE * (0.012 + 0.014 * Math.random())) : 0;
-          for (let i = 0; i < notes.length; i++) {
-            const note = notes[i];
+          for (let i = 0; i < 2; i++) {
+            const note = notes[i === 1 && raisedSecond ? 2 : i];
             // Smaller pick positions lean brighter. Keep some of the regular color rotation.
             const regularVariation = (bar + step + i) % 5;
             const variation = Math.round(2.4 * (1 - stroke) + 0.4 * regularVariation);
@@ -1263,7 +1325,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
           }
         }
 
-        if (rightReturning) breakBar = -1;
+        if (bandReturning) breakBar = -1;
         else if (breakBar >= 0) breakBar++;
         bar++;
         const nextMixGain = mixGainPlan.next().value;
