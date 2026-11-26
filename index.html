@@ -329,11 +329,11 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
  <header id="hud" class="anchor">
   <div class="topbar"><h1 class="brand" data-text="gameName">函</h1><div id="utility"><button id="help" class="flat" data-text="help">玩法</button><button id="potion-guide" class="flat" data-text="guide" data-label="potionGuide" aria-haspopup="dialog">图鉴</button><button id="save-slots" class="flat" data-text="saveSlots" aria-haspopup="dialog">存档</button><button id="reset" class="flat" data-text="restart" aria-haspopup="dialog">重开</button><button id="settings" class="flat" data-text="settings" aria-haspopup="dialog">设置</button>
    <button type="button" id="music-toggle" class="flat" aria-label="音乐" data-label="music" data-title="music" aria-pressed="false">
-    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+    <svg viewBox="0 0 16 16" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true">
      <defs><mask id="music-slash-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="16">
       <rect width="16" height="16" fill="white"/><path d="M2 2l12 12" stroke="black" stroke-width="4"/>
      </mask></defs>
-     <path class="music-note" d="M8 2h2v1h2v1h2v3h-2V5h-2v7H9v1H8v1H4v-1H3v-2h1v-1h4z"/>
+     <path class="music-note" d="M9 2h5v2h-3v10H5V8h4z"/>
      <path class="music-slash" d="M2 2l12 12" stroke="currentColor" stroke-width="1.5"/>
     </svg>
    </button>
@@ -547,12 +547,19 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       return chances;
     }
 
+    function harmonicGainsForSeed(seed) {
+      // Keep the harmonic weights on a separate random stream from the progression.
+      const rng = new PythonRandom([...seedWords(seed), 0x6861726d]);
+      return OFFSETS.map(offset => offset === 0 ? 1 : 10 ** (rng.uniform(-1, 1) / 20));
+    }
+
     let requestedHarmonySeed;
 
     function* chords(rng, seed, opening, voicingRng, leftPitchRng, rightPitchRng) {
       let index = opening;
       let originalIndex = opening;
       let harmonySeed = seed;
+      let harmonicGains = harmonicGainsForSeed(seed);
       let transitionRng;
       while (true) {
         const length = rng.integer(4, 8);
@@ -564,7 +571,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         for (let bar = 0; bar < length; bar++) {
           const voicing = bar >= regularBars ? ALTERNATE_VOICINGS[index] : chord;
           yield {
-            chord, voicing,
+            chord, voicing, harmonicGains,
             startsChord: bar === 0,
             leftPitchChance: leftPitchChances[bar] ?? 0,
             rightPitchChance: rightPitchChances[bar] ?? 0,
@@ -575,6 +582,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         if (requestedHarmonySeed !== harmonySeed) {
           harmonySeed = requestedHarmonySeed;
           transitionRng = new PythonRandom(seedWords(harmonySeed));
+          harmonicGains = harmonicGainsForSeed(harmonySeed);
         }
         index = transitionRng ? transitionRng.choice(TRANSITIONS[index]) : originalIndex;
       }
@@ -792,7 +800,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       fadeBetweenBeats(0, 1.5), fadeBetweenBeats(0.5, 3), fadeBetweenBeats(0.25, 2.25),
     ];
 
-    function chordTables(chord, accentNotes, colorAmount, time, motion, { tables, waveforms }) {
+    function chordTables(chord, accentNotes, colorAmount, time, motion, harmonicGains, { tables, waveforms }) {
       const bands = new Map();
       for (const note of chord) {
         for (const offset of OFFSETS) {
@@ -811,7 +819,8 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         const weights = note <= 50 ? [0.46, 0.52, 0.36, 0.28] : [0.56, 0.42, 0.30, 0.19];
         const [first, second, third, fourth] = weights.map((weight, i) => {
           const [period, phase] = motion.get(note)[i + 1];
-          return weight * (1 + 0.38 * softTriangle(time / period + phase)) / Math.sqrt(bands.get(note + OFFSETS[i]));
+          const movement = 1 + 0.38 * softTriangle(time / period + phase);
+          return weight * harmonicGains[i] * movement / Math.sqrt(bands.get(note + OFFSETS[i]));
         });
         const table = waveforms[slot];
         let power = 0;
@@ -955,6 +964,21 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       const gain = 0.72 / Math.sqrt(power / samples.length);
       for (let i = 0; i < samples.length; i++) samples[i] *= gain;
       return samples;
+    }
+
+    function createSinglePluckLayer(getPluckSample) {
+      const rng = new PythonRandom(crypto.getRandomValues(new Uint32Array(1)));
+      const pan = 0.14;
+
+      return function mixSinglePluck(left, right, chord) {
+        for (let step = 0; step < 8; step += 2) {
+          if (rng.random() >= 0.04) continue;
+          const note = chord[rng.integer(chord.length - 3, chord.length - 1)];
+          const sound = getPluckSample(note, rng.integer(0, 4), true, -PLUCK_POSITION_OFFSET);
+          const gain = rng.uniform(0.060, 0.090);
+          mixSound(left, right, sound, step, gain, pan);
+        }
+      };
     }
 
     function drum(kind) {
@@ -1105,6 +1129,24 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       const pluckEvents = [];
       const pluckCounts = new Uint8Array(8);
       let pluckBytes = 0;
+      function getPluckSample(note, variation, accent, pickOffset) {
+        const key = `${note}:${variation}`;
+        const cacheKey = `${key}:${accent}:${pickOffset}`;
+        let sample = plucks.get(cacheKey);
+        if (!sample) {
+          const duration = STEP * (accent ? 0.94 : 0.48);
+          sample = stringPluck(note, duration, variation, pluckKeys[key], pickOffset);
+          while (pluckBytes + sample.byteLength > PLUCK_CACHE_BYTES) {
+            const [oldest, cached] = plucks.entries().next().value;
+            plucks.delete(oldest);
+            pluckBytes -= cached.byteLength;
+          }
+          plucks.set(cacheKey, sample);
+          pluckBytes += sample.byteLength;
+        }
+        return sample;
+      }
+      const mixSinglePluck = createSinglePluckLayer(getPluckSample);
       const tableBanks = Array.from({ length: 2 }, () => ({
         tables: new Map(),
         waveforms: CHORDS[0].map(() => new Float64Array(TABLE_SIZE + 1)),
@@ -1139,7 +1181,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       let slowL = 0, brightL = 0, slowR = 0, brightR = 0;
 
       return function nextBar(left, right) {
-        const { chord, voicing, startsChord, leftPitchChance, rightPitchChance } = harmony.next().value;
+        const { chord, voicing, harmonicGains, startsChord, leftPitchChance, rightPitchChance } = harmony.next().value;
         if (startsChord && chordsUntilVibrato-- === 0) {
           chordsUntilVibrato = 3 + Math.floor(Math.random() * 4);
           const start = bar * FRAMES + Math.round((2 + Math.random()) * RATE);
@@ -1170,7 +1212,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         const accentNotes = CHORD_ACCENT_NOTES[CHORDS.indexOf(chord)]
           .map(note => voicing.includes(note) ? note : note + 12);
         const colorAmount = 0.625 + 0.375 * softTriangle(time / chordColorPeriod + chordColorPhase);
-        const tables = chordTables(voicing, accentNotes, colorAmount, time, motion, tableBanks[bar % 2]);
+        const tables = chordTables(voicing, accentNotes, colorAmount, time, motion, harmonicGains, tableBanks[bar % 2]);
         mixChord(left, right, tables, tableBanks[(bar + 1) % 2].tables, bar, change, vibrato);
 
         const noiseLevel = 0.05 + 0.003 * softTriangle(time / 14 + 0.37);
@@ -1296,7 +1338,6 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         }
 
         for (const { step, accent, notes, raisedSecond, pan, pickOffset, strength } of pluckEvents) {
-          const duration = STEP * (accent ? 0.94 : 0.48);
           const stroke = Math.random();
           const strokeGain = 10 ** ((stroke - 0.5) / 20);
           const gain = (accent ? 0.093 : 0.048) * strength * strokeGain;
@@ -1310,22 +1351,11 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
             // Smaller pick positions lean brighter. Keep some of the regular color rotation.
             const regularVariation = (bar + step + i) % 5;
             const variation = Math.round(2.4 * (1 - stroke) + 0.4 * regularVariation);
-            const key = `${note}:${variation}`;
-            const cacheKey = `${key}:${accent}:${pickOffset}`;
-            let sample = plucks.get(cacheKey);
-            if (!sample) {
-              sample = stringPluck(note, duration, variation, pluckKeys[key], pickOffset);
-              while (pluckBytes + sample.byteLength > PLUCK_CACHE_BYTES) {
-                const [oldest, cached] = plucks.entries().next().value;
-                plucks.delete(oldest);
-                pluckBytes -= cached.byteLength;
-              }
-              plucks.set(cacheKey, sample);
-              pluckBytes += sample.byteLength;
-            }
+            const sample = getPluckSample(note, variation, accent, pickOffset);
             mixSound(left, right, sample, step, i === 0 ? gain : gain * secondGain, pan, i * secondDelay, trim);
           }
         }
+        mixSinglePluck(left, right, chord);
 
         if (bandReturning) breakBar = -1;
         else if (breakBar >= 0) breakBar++;
