@@ -127,8 +127,15 @@ html,body{overflow:hidden;overscroll-behavior:none}
 #board{width:100%;height:100%;display:block;touch-action:none}
 .anchor{position:absolute}#hud{z-index:1;top:var(--hud-top,8px);left:var(--hud-left,10px);width:var(--hud-width,264px);display:grid;gap:var(--hud-row-gap,7px);pointer-events:none}
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.brand{flex:none;font-size:32px;line-height:1;color:#292929}
-#utility{display:flex;justify-content:flex-end;align-items:flex-start;gap:0 var(--hud-menu-gap,6px);pointer-events:auto}
+#utility{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:flex-start;gap:0 var(--hud-menu-gap,6px);pointer-events:auto}
 .flat{flex:none;padding:4px 2px;background:transparent;color:var(--muted);font-size:16px;white-space:nowrap}
+#music-toggle{position:relative}
+#music-toggle svg{display:block;width:.875em;height:1em;margin-inline:auto;pointer-events:none}
+#music-toggle:hover::after{content:"";position:absolute;inset-inline:0;top:calc(50% + .625em);width:.75em;height:1px;margin-inline:auto;background:currentColor;pointer-events:none}
+#music-toggle:focus-visible{outline:1px solid currentColor;outline-offset:-1px}
+#music-toggle .music-slash{visibility:hidden}
+#music-toggle[aria-pressed="false"] .music-note{mask:url(#music-slash-cutout)}
+#music-toggle[aria-pressed="false"] .music-slash{visibility:visible}
 .flat:hover,.quiet:hover:not(:disabled),#equip-help:hover,#info button:hover,
 .restart-choice:hover,.settings-choice:hover,.opening-mode .restart-choice:has(input:checked),
 .settings-choice:has(input:checked){text-decoration:underline;text-underline-offset:4px}
@@ -320,7 +327,17 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
   <defs><path id="panel-close-stroke" d="M0 0h2v2H0z M2 2h2v2H2z M4 4h2v2H4z M6 6h2v2H6z M8 8h2v2H8z M10 10h2v2H10z M12 12h2v2H12z"/></defs>
  </svg>
  <header id="hud" class="anchor">
-  <div class="topbar"><h1 class="brand" data-text="gameName">函</h1><div id="utility"><button id="help" class="flat" data-text="help">玩法</button><button id="potion-guide" class="flat" data-text="guide" data-label="potionGuide" aria-haspopup="dialog">图鉴</button><button id="save-slots" class="flat" data-text="saveSlots" aria-haspopup="dialog">存档</button><button id="reset" class="flat" data-text="restart" aria-haspopup="dialog">重开</button><button id="settings" class="flat" data-text="settings" aria-haspopup="dialog">设置</button><button id="language" class="flat" data-text="language" data-label="switchLanguage">EN</button></div></div>
+  <div class="topbar"><h1 class="brand" data-text="gameName">函</h1><div id="utility"><button id="help" class="flat" data-text="help">玩法</button><button id="potion-guide" class="flat" data-text="guide" data-label="potionGuide" aria-haspopup="dialog">图鉴</button><button id="save-slots" class="flat" data-text="saveSlots" aria-haspopup="dialog">存档</button><button id="reset" class="flat" data-text="restart" aria-haspopup="dialog">重开</button><button id="settings" class="flat" data-text="settings" aria-haspopup="dialog">设置</button>
+   <button type="button" id="music-toggle" class="flat" aria-label="音乐" data-label="music" data-title="music" aria-pressed="false">
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+     <defs><mask id="music-slash-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="16">
+      <rect width="16" height="16" fill="white"/><path d="M2 2l12 12" stroke="black" stroke-width="4"/>
+     </mask></defs>
+     <path class="music-note" d="M8 2h2v1h2v1h2v3h-2V5h-2v7H9v1H8v1H4v-1H3v-2h1v-1h4z"/>
+     <path class="music-slash" d="M2 2l12 12" stroke="currentColor" stroke-width="1.5"/>
+    </svg>
+   </button>
+   <button id="language" class="flat" data-text="language" data-label="switchLanguage">EN</button></div></div>
   <section id="metrics" data-label="status">
    <div id="round-stat">
     <output class="stat" id="level" data-label="round" data-title="round"></output>
@@ -730,7 +747,12 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       return before + (table[index + 1] - before) * (phase - index);
     }
 
-    function mixChord(left, right, tables, previous, bar, change) {
+    function wrapChordPhase(phase) {
+      if (phase < 0) return phase + TABLE_SIZE;
+      return phase >= TABLE_SIZE ? phase - TABLE_SIZE : phase;
+    }
+
+    function mixChord(left, right, tables, previous, bar, change, vibrato) {
       const notes = [...new Set([...tables.keys(), ...previous.keys()])].sort((a, b) => a - b);
       const firstFrame = bar * FRAMES;
       for (const note of notes) {
@@ -753,11 +775,27 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         let phase = (firstFrame * delta + note * 71) % TABLE_SIZE;
         let phaseL = (firstFrame * deltaL + note * 97) % TABLE_SIZE;
         let phaseR = (firstFrame * deltaR + note * 53) % TABLE_SIZE;
+        const bendsNote = vibrato?.note === note &&
+          vibrato.start < firstFrame + FRAMES && vibrato.end > firstFrame;
         for (let i = 0; i < FRAMES; i++) {
           const blend = transition[i];
-          const body = sampleTable(start, phase) + blend * sampleTable(change, phase);
-          const wideL = sampleTable(start, phaseL) + blend * sampleTable(change, phaseL);
-          const wideR = sampleTable(start, phaseR) + blend * sampleTable(change, phaseR);
+          let bodyPhase = phase, widePhaseL = phaseL, widePhaseR = phaseR;
+          if (bendsNote) {
+            const frame = firstFrame + i;
+            const elapsed = frame - vibrato.start;
+            const edge = Math.min(1, elapsed / RATE, (vibrato.end - frame) / (1.6 * RATE));
+            if (edge > 0) {
+              const envelope = edge * edge * (3 - 2 * edge);
+              // An absolute phase offset keeps the modulation continuous across bars.
+              const shift = vibrato.depth * envelope * Math.sin(elapsed * vibrato.rate);
+              bodyPhase = wrapChordPhase(phase + delta * shift);
+              widePhaseL = wrapChordPhase(phaseL + deltaL * shift);
+              widePhaseR = wrapChordPhase(phaseR + deltaR * shift);
+            }
+          }
+          const body = sampleTable(start, bodyPhase) + blend * sampleTable(change, bodyPhase);
+          const wideL = sampleTable(start, widePhaseL) + blend * sampleTable(change, widePhaseL);
+          const wideR = sampleTable(start, widePhaseR) + blend * sampleTable(change, widePhaseR);
           left[i] += gainL * (body + 0.14 * wideL);
           right[i] += gainR * (body + 0.14 * wideR);
           phase += delta;
@@ -896,6 +934,23 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       }
     }
 
+    function* mixGains() {
+      let from = 1;
+      let direction = Math.random() < 0.5 ? -1 : 1;
+      while (true) {
+        const bars = 16 + Math.floor(Math.random() * 33);
+        const targetDb = direction * (0.25 + 0.3 * Math.random());
+        const to = 10 ** (targetDb / 20);
+        for (let bar = 1; bar <= bars; bar++) {
+          const progress = bar / bars;
+          const eased = progress * progress * (3 - 2 * progress);
+          yield from + (to - from) * eased;
+        }
+        from = to;
+        direction = -direction;
+      }
+    }
+
     function createEngine(seed, {
       voicingKey, toneKey, noiseKey, leftRhythmKey, leftVariationKey, rightVariationKey,
       dynamicsKey, replyDensityKey, pluckRegisterKey, leftPitchKey, rightPitchKey, kickPatternKey, hatPickupKey,
@@ -905,6 +960,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       const toneRng = new PythonRandom(toneKey);
       const noiseRng = new PythonRandom(noiseKey);
       const noiseColorPlan = noiseColors();
+      const mixGainPlan = mixGains();
       const dynamicsRng = new PythonRandom(dynamicsKey);
       const opening = Math.floor(Math.random() * CHORDS.length);
       const openingParts = OPENING_ACCOMPANIMENTS[Math.floor(Math.random() * OPENING_ACCOMPANIMENTS.length)];
@@ -937,9 +993,12 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         waveforms: CHORDS[0].map(() => new Float64Array(TABLE_SIZE + 1)),
       }));
       const change = new Float64Array(TABLE_SIZE + 1);
+      let mixGain = 1;
       let previousNoise = 0;
       let previousNoiseColor;
       let bar = 0;
+      let chordsUntilVibrato = 3 + Math.floor(Math.random() * 4);
+      let vibrato;
       let breakBar = -1;
       let restPending = false;
       let previousLeft = false;
@@ -955,6 +1014,14 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
 
       return function nextBar(left, right) {
         const { chord, voicing, startsChord, startsPluckRest, leftPitchChange, rightPitchChange } = harmony.next().value;
+        if (startsChord && chordsUntilVibrato-- === 0) {
+          chordsUntilVibrato = 3 + Math.floor(Math.random() * 4);
+          const start = bar * FRAMES + Math.round((2 + Math.random()) * RATE);
+          const end = start + Math.round((3.5 + Math.random()) * RATE);
+          const rate = 2 * Math.PI * (4 + Math.random()) / RATE;
+          const cents = 4 + 2 * Math.random();
+          vibrato = { note: voicing.at(-1), start, end, rate, depth: (2 ** (cents / 1200) - 1) / rate };
+        }
         restPending ||= startsPluckRest;
         if (restPending && startsChord && breakBar < 0) {
           breakBar = 0;
@@ -969,7 +1036,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         right.fill(0);
         const time = (bar + 1) * FRAMES / RATE;
         const tables = chordTables(voicing, time, motion, tableBanks[bar % 2]);
-        mixChord(left, right, tables, tableBanks[(bar + 1) % 2].tables, bar, change);
+        mixChord(left, right, tables, tableBanks[(bar + 1) % 2].tables, bar, change, vibrato);
 
         const noiseLevel = 0.05 + 0.003 * softTriangle(time / 14 + 0.37);
         const noiseColor = noiseColorPlan.next().value;
@@ -1084,10 +1151,14 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         if (rightReturning) breakBar = -1;
         else if (breakBar >= 0) breakBar++;
         bar++;
+        const nextMixGain = mixGainPlan.next().value;
+        const gainStep = (nextMixGain - mixGain) / FRAMES;
         for (let i = 0; i < FRAMES; i++) {
-          left[i] = Math.trunc(28500 * Math.tanh(1.9 * left[i])) / 32768;
-          right[i] = Math.trunc(28500 * Math.tanh(1.9 * right[i])) / 32768;
+          const peak = 28500 * (mixGain + gainStep * i);
+          left[i] = Math.trunc(peak * Math.tanh(1.9 * left[i])) / 32768;
+          right[i] = Math.trunc(peak * Math.tanh(1.9 * right[i])) / 32768;
         }
+        mixGain = nextMixGain;
       };
     }
 
@@ -1260,7 +1331,7 @@ const MESSAGES = {
   'zh-CN': {
     gameName:'函',
     language:'EN', switchLanguage:'切换到英文', help:'玩法', guide:'图鉴', potionGuide:'道具图鉴', restart:'重开',
-    music:'播放音乐', musicVolume:'音量', settings:'设置', heldPieceOutline:'按住牌时显示轮廓',
+    music:'音乐', musicVolume:'音量', settings:'设置', heldPieceOutline:'按住牌时显示轮廓',
     standard:'标准', advanced:'进阶', experiment:'实验',
     confirm:'确认',
     status:'状态', round:'场次', life:'剩余生命', deployment:'已摆放', deploymentTitle:'已摆放 / 摆放上限',
@@ -1290,7 +1361,7 @@ const MESSAGES = {
   en: {
     gameName:'Inhold',
     language:'中', switchLanguage:'Switch to Chinese', help:'Help', guide:'Codex', potionGuide:'Item Codex', restart:'Restart',
-    music:'Play music', musicVolume:'Volume', settings:'Settings', heldPieceOutline:'Outline tiles while held',
+    music:'Music', musicVolume:'Volume', settings:'Settings', heldPieceOutline:'Outline tiles while held',
     standard:'Standard', advanced:'Advanced', experiment:'Experiment',
     confirm:'Confirm',
     status:'Status', round:'Round', life:'Life remaining', deployment:'Tiles placed', deploymentTitle:'Tiles placed / tile limit',
@@ -4454,7 +4525,9 @@ function layoutTopHud(scale,arenaStart,boardTop) {
   const menuWidth=widths.reduce((total,size)=>total+size,0)+Math.max(0,controls.length-1)*menuGap;
   const titleWidth=gameRect(topbar.firstElementChild).width;
   const topbarGap=parseFloat(getComputedStyle(topbar).columnGap);
-  const half=Math.ceil(Math.max(264,FIELD.size*scale,titleWidth+topbarGap+menuWidth)/(2*scale));
+  const desiredHalf=Math.ceil(Math.max(264,FIELD.size*scale,titleWidth+topbarGap+menuWidth)/(2*scale));
+  const viewportHalf=Math.floor(Math.min(center,innerWidth/gameZoom-center)/scale);
+  const half=Math.min(desiredHalf,viewportHalf);
   setPixelSizes(lengths,{
     '--hud-left':center-half*scale,'--hud-width':2*half*scale,'--hud-top':top,'--hud-menu-gap':menuGap
   });
@@ -5786,8 +5859,7 @@ let musicEnabled=false, musicVolume=DEFAULT_MUSIC_VOLUME, musicSession=null;
 
 function setMusicEnabled(enabled) {
   musicEnabled=enabled;
-  const checkbox=$('music-setting');
-  if (checkbox) checkbox.checked=enabled;
+  $('music-toggle').setAttribute('aria-pressed',String(enabled));
 }
 
 function stopMusic() {
@@ -5939,7 +6011,7 @@ function updateMusicSeed(seed) {
 }
 
 function resumeSavedMusic(event) {
-  if (musicEnabled&&!musicSession&&event.isTrusted&&!event.target.closest?.('.music-choice')&&
+  if (musicEnabled&&!musicSession&&event.isTrusted&&!event.target.closest?.('#music-toggle')&&
       navigator.userActivation?.isActive!==false) startMusic();
 }
 
@@ -5968,20 +6040,12 @@ async function setMusicPlayback(enabled) {
     if (revision===session.playbackRevision) failMusic(session,error);
   }
 }
+$('music-toggle').onclick=()=>setMusicPlayback(!musicEnabled);
 document.addEventListener('click',resumeSavedMusic,true);
 document.addEventListener('keydown',resumeSavedMusic,true);
 window.addEventListener('pagehide',stopMusic);
 
 $('settings').onclick=()=>{
-  const musicRow=document.createElement('label');
-  musicRow.className='settings-choice music-choice';
-  const musicCheckbox=document.createElement('input');
-  musicCheckbox.id='music-setting';
-  musicCheckbox.type='checkbox';
-  musicCheckbox.checked=musicEnabled;
-  musicCheckbox.onchange=()=>setMusicPlayback(musicCheckbox.checked);
-  musicRow.append(musicCheckbox,message('music'));
-
   const volumeRow=document.createElement('label');
   volumeRow.className='settings-choice music-volume';
   const volumeSlider=document.createElement('input');
@@ -6013,7 +6077,7 @@ $('settings').onclick=()=>{
     saveMetadata(HELD_PIECE_OUTLINE_KEY,showHeldPieceOutline);
   };
   row.append(checkbox,message('heldPieceOutline'));
-  showInfo('settings',[musicRow,volumeRow,row],[['close']]);
+  showInfo('settings',[volumeRow,row],[['close']]);
 };
 $('potion-guide').onclick=()=>{
   const list=document.createElement('ul');
