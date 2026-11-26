@@ -412,6 +412,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
     const CHORD_GAIN = 10 ** (-1.5 / 20);
     const PLUCK_POSITION_OFFSET = 0.012;
     const PLUCK_CACHE_BYTES = 2 * 1024 * 1024;
+    const PLUCK_RELEASE_FRAMES = Math.round(0.024 * RATE);
     const SLOW_NOISE_COEFFICIENT = 0.026;
     const BRIGHT_NOISE_COEFFICIENT = 0.25;
     const NOISE_REFERENCE_POWER = noiseBandPower(0.16);
@@ -645,6 +646,18 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       }
     }
 
+    function* pluckPhrases() {
+      while (true) {
+        const strokes = 3 + Math.floor(Math.random() * 3);
+        const liftDb = 0.35 + 0.25 * Math.random();
+        const releaseDb = 0.35 + 0.25 * Math.random();
+        for (let stroke = 0; stroke < strokes - 1; stroke++) {
+          yield 10 ** (liftDb * stroke / ((strokes - 2) * 20));
+        }
+        yield 10 ** (-releaseDb / 20);
+      }
+    }
+
     function* pluckRegisterSwaps(rng) {
       while (true) {
         const regularBars = rng.integer(8, 14);
@@ -666,6 +679,45 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
           yield { secondKickStep: 5, hatPickup: false };
         }
       }
+    }
+
+    function* drumFills(rng) {
+      const omissions = [
+        { omitSecondKick: true },
+        { omitHat: 2 },
+        { omitHat: 6 },
+      ];
+      const weakHits = [
+        { kind: 'kick', step: 3 },
+        { kind: 'kick', step: 7 },
+        { kind: 'snare', step: 1 },
+        { kind: 'snare', step: 3 },
+        { kind: 'snare', step: 7 },
+        { kind: 'hat', step: 1.5 },
+        { kind: 'hat', step: 3.5 },
+        { kind: 'hat', step: 5.5 },
+        { kind: 'hat', step: 6.5 },
+        { kind: 'hat', step: 7.5 },
+      ];
+      while (true) {
+        const regularBars = rng.integer(3, 6);
+        for (let bar = 0; bar < regularBars; bar++) yield null;
+        if (rng.random() < 0.4) {
+          yield rng.choice(omissions);
+          continue;
+        }
+        const first = rng.choice(weakHits);
+        const hits = [first];
+        if (rng.integer(1, 2) === 2) {
+          const nearby = weakHits.filter(hit => hit.step !== first.step && Math.abs(hit.step - first.step) <= 2);
+          hits.push(rng.choice(nearby));
+        }
+        yield { hits };
+      }
+    }
+
+    function drumHitGain(gain, variationDb) {
+      return gain * 10 ** ((2 * Math.random() - 1) * variationDb / 20);
     }
 
     function softTriangle(phase) {
@@ -808,14 +860,23 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       }
     }
 
-    function mixSound(left, right, sound, step, gain, pan = 0, delay = 0) {
+    function mixSound(left, right, sound, step, gain, pan = 0, delay = 0, trim = 0) {
       const start = Math.round((step * STEP + delay) * RATE);
       const angle = (pan + 1) * Math.PI / 4;
       const gainL = gain * Math.cos(angle);
       const gainR = gain * Math.sin(angle);
-      for (let i = 0; i < sound.length; i++) {
+      const length = sound.length - trim;
+      const release = trim ? Math.min(length, PLUCK_RELEASE_FRAMES) : 0;
+      const releaseStart = length - release;
+      const releaseStep = release ? 1 / release : 0;
+      for (let i = 0; i < releaseStart; i++) {
         left[start + i] += gainL * sound[i];
         right[start + i] += gainR * sound[i];
+      }
+      for (let i = releaseStart; i < length; i++) {
+        const sample = sound[i] * (length - i - 1) * releaseStep;
+        left[start + i] += gainL * sample;
+        right[start + i] += gainR * sample;
       }
     }
 
@@ -939,7 +1000,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       let direction = Math.random() < 0.5 ? -1 : 1;
       while (true) {
         const bars = 16 + Math.floor(Math.random() * 33);
-        const targetDb = direction * (0.25 + 0.3 * Math.random());
+        const targetDb = direction < 0 ? -0.45 - 0.4 * Math.random() : 0.25 + 0.3 * Math.random();
         const to = 10 ** (targetDb / 20);
         for (let bar = 1; bar <= bars; bar++) {
           const progress = bar / bars;
@@ -954,7 +1015,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
     function createEngine(seed, {
       voicingKey, toneKey, noiseKey, leftRhythmKey, leftVariationKey, rightVariationKey,
       dynamicsKey, replyDensityKey, pluckRegisterKey, leftPitchKey, rightPitchKey, kickPatternKey, hatPickupKey,
-      breakKey, pluckKeys,
+      drumFillKey, breakKey, pluckKeys,
     }) {
       const rng = new PythonRandom(seedWords(seed));
       const toneRng = new PythonRandom(toneKey);
@@ -978,6 +1039,8 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       const replyDensities = replyDensity(new PythonRandom(replyDensityKey));
       const leftDynamics = pluckDynamics(dynamicsRng);
       const rightDynamics = pluckDynamics(dynamicsRng);
+      const leftPhrases = pluckPhrases();
+      const rightPhrases = pluckPhrases();
       const registerSwaps = pluckRegisterSwaps(new PythonRandom(pluckRegisterKey));
       const motion = new Map(PITCHES.map(note => [note,
         Array.from({ length: 5 }, () => [toneRng.uniform(6, 17), toneRng.random()])
@@ -985,8 +1048,16 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
       const kick = drum('kick');
       const snare = drum('snare');
       const hat = drum('hat');
+      const fillVoices = {
+        kick: { sample: kick, gain: 0.075, pan: 0, variationDb: 0 },
+        snare: { sample: snare, gain: 0.06, pan: -0.06, variationDb: 0.6 },
+        hat: { sample: hat, gain: 0.015, pan: 0.16, variationDb: 1.2 },
+      };
       const drums = drumPattern(new PythonRandom(kickPatternKey), new PythonRandom(hatPickupKey));
+      const fills = drumFills(new PythonRandom(drumFillKey));
       const plucks = new Map();
+      const pluckEvents = [];
+      const pluckCounts = new Uint8Array(8);
       let pluckBytes = 0;
       const tableBanks = Array.from({ length: 2 }, () => ({
         tables: new Map(),
@@ -1066,6 +1137,8 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         // Keep the reply plan on its usual timeline while the opening voices enter.
         const [leftReplies, rightReplies] = bar >= 2 ? replies.next().value : [false, false];
         const { secondKickStep, hatPickup } = drums.next().value;
+        const drumFill = drumsEntered ? fills.next().value : null;
+        const fillHits = drumFill?.hits ?? [];
         const swapRegisters = registerSwaps.next().value;
         const leftNoteStart = swapRegisters ? 3 : 2;
         const rightNoteStart = swapRegisters ? 2 : 3;
@@ -1073,6 +1146,8 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
         const rightNotes = [chord[rightNoteStart], chord[rightNoteStart + (rightPitchChange ? 2 : 1)]];
         const varyLeft = leftVariations.next().value;
         const varyRight = rightVariations.next().value;
+        pluckEvents.length = 0;
+        pluckCounts.fill(0);
         for (let step = 0; step < 8; step++) {
           if (leftCycleStep === 0) {
             const regularSecondAccent = leftAccents.next().value;
@@ -1105,47 +1180,74 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
           const drumLevel = drumsEntered ? (leaving ? restFadeOut(breakPosition - DRUM_FADE_DELAY) : rightLevel) : 0;
           const leftStrength = leftDynamics.next().value * leftLevel;
           const rightStrength = rightDynamics.next().value * (rightPickup ? 0.55 : 1) * rightLevel;
-          for (const [accent, reply, notes, pan, strength, pickOffset] of [
-            [leftAccent, canReplyLeft && playReply, leftNotes, -0.35, leftStrength, PLUCK_POSITION_OFFSET],
-            [rightAccent, canReplyRight && playReply, rightNotes, 0.35, rightStrength, -PLUCK_POSITION_OFFSET],
+          for (const [accent, reply, notes, pan, strength, pickOffset, phrase] of [
+            [leftAccent, canReplyLeft && playReply, leftNotes, -0.35, leftStrength, PLUCK_POSITION_OFFSET, leftPhrases],
+            [rightAccent, canReplyRight && playReply, rightNotes, 0.35, rightStrength, -PLUCK_POSITION_OFFSET, rightPhrases],
           ]) {
             if ((!accent && !reply) || !strength) continue;
-            const duration = STEP * (accent ? 0.94 : 0.48);
-            const gain = (accent ? 0.093 : 0.048) * strength;
-            for (let i = 0; i < notes.length; i++) {
-              const note = notes[i];
-              const variation = (bar + step + i) % 5;
-              const key = `${note}:${variation}`;
-              const cacheKey = `${key}:${accent}:${pickOffset}`;
-              let sample = plucks.get(cacheKey);
-              if (!sample) {
-                sample = stringPluck(note, duration, variation, pluckKeys[key], pickOffset);
-                while (pluckBytes + sample.byteLength > PLUCK_CACHE_BYTES) {
-                  const [oldest, cached] = plucks.entries().next().value;
-                  plucks.delete(oldest);
-                  pluckBytes -= cached.byteLength;
-                }
-                plucks.set(cacheKey, sample);
-                pluckBytes += sample.byteLength;
-              }
-              mixSound(left, right, sample, step, gain * (1 - 0.19 * i), pan, 0.008 * i);
-            }
+            pluckCounts[step]++;
+            pluckEvents.push({ step, accent, notes, pan, pickOffset, strength: strength * phrase.next().value });
           }
           const kickLevel = step === 0 && kickReturned ? 1 : drumLevel;
-          if (kickLevel && (step === 0 || step === secondKickStep)) {
+          if (kickLevel && (step === 0 || (step === secondKickStep && !drumFill?.omitSecondKick))) {
             mixSound(left, right, kick, step, 0.19 * kickLevel);
           }
           if (drumLevel) {
-            if (step === 2 || step === 6) {
-              mixSound(left, right, snare, step, 0.17 * drumLevel, -0.06, 0.009);
-              mixSound(left, right, hat, step, 0.025 * drumLevel, 0.16);
+            const backbeat = step === 2 || step === 6;
+            if (backbeat) {
+              const snareGain = drumHitGain(0.17 * drumLevel, 0.6);
+              const snareDelay = 0.007 + 0.004 * Math.random();
+              mixSound(left, right, snare, step, snareGain, -0.06, snareDelay);
             }
-            if (hatPickup && step === 7) mixSound(left, right, hat, step, 0.015 * drumLevel, 0.16);
+            if ((backbeat && step !== drumFill?.omitHat) || (hatPickup && step === 7)) {
+              const hatGain = drumHitGain((backbeat ? 0.025 : 0.015) * drumLevel, 1.2);
+              mixSound(left, right, hat, step, hatGain, 0.16);
+            }
+            for (const hit of fillHits) {
+              if (Math.floor(hit.step) !== step) continue;
+              const voice = fillVoices[hit.kind];
+              const gain = voice.gain * drumLevel;
+              const variedGain = voice.variationDb ? drumHitGain(gain, voice.variationDb) : gain;
+              const delay = hit.kind === 'snare' ? 0.007 + 0.004 * Math.random() : (hit.step - step) * STEP;
+              mixSound(left, right, voice.sample, step, variedGain, voice.pan, delay);
+            }
           }
           previousLeft = leftAccent;
           previousRight = rightAccent;
           leftCycleStep = (leftCycleStep + 1) % 5;
           rightCycleStep = (rightCycleStep + 1) % rightCycleLength;
+        }
+
+        for (const { step, accent, notes, pan, pickOffset, strength } of pluckEvents) {
+          const duration = STEP * (accent ? 0.94 : 0.48);
+          const stroke = Math.random();
+          const strokeGain = 10 ** ((stroke - 0.5) / 20);
+          const gain = (accent ? 0.093 : 0.048) * strength * strokeGain;
+          const secondGain = 0.75 + 0.15 * Math.random();
+          const spacing = 0.65 * (1 - stroke) + 0.35 * Math.random();
+          const secondDelay = 0.006 + 0.007 * spacing;
+          const closeTogether = pluckCounts[step] > 1 || pluckCounts[step + 1] > 0;
+          const trim = closeTogether ? Math.round(RATE * (0.012 + 0.014 * Math.random())) : 0;
+          for (let i = 0; i < notes.length; i++) {
+            const note = notes[i];
+            // Smaller pick positions lean brighter. Keep some of the regular color rotation.
+            const regularVariation = (bar + step + i) % 5;
+            const variation = Math.round(2.4 * (1 - stroke) + 0.4 * regularVariation);
+            const key = `${note}:${variation}`;
+            const cacheKey = `${key}:${accent}:${pickOffset}`;
+            let sample = plucks.get(cacheKey);
+            if (!sample) {
+              sample = stringPluck(note, duration, variation, pluckKeys[key], pickOffset);
+              while (pluckBytes + sample.byteLength > PLUCK_CACHE_BYTES) {
+                const [oldest, cached] = plucks.entries().next().value;
+                plucks.delete(oldest);
+                pluckBytes -= cached.byteLength;
+              }
+              plucks.set(cacheKey, sample);
+              pluckBytes += sample.byteLength;
+            }
+            mixSound(left, right, sample, step, i === 0 ? gain : gain * secondGain, pan, i * secondDelay, trim);
+          }
         }
 
         if (rightReturning) breakBar = -1;
@@ -1172,7 +1274,7 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
           const [
             voicingKey, toneKey, noiseKey, leftRhythmKey, leftVariationKey, rightVariationKey,
             dynamicsKey, replyDensityKey, pluckRegisterKey, leftPitchKey, rightPitchKey,
-            kickPatternKey, hatPickupKey, breakKey, pluckEntries,
+            kickPatternKey, hatPickupKey, drumFillKey, breakKey, pluckEntries,
           ] = await Promise.all([
             textSeedWords(`chord-voicing:${data.seed}`),
             textSeedWords(`tone:${data.seed}`),
@@ -1187,13 +1289,14 @@ button:focus-visible{text-decoration:underline;text-underline-offset:4px}
             textSeedWords(`pluck-pitch:${data.seed}`),
             textSeedWords(`kick-pattern:${data.seed}`),
             textSeedWords(`hat-pickup:${data.seed}`),
+            textSeedWords(`drum-fills:${data.seed}`),
             textSeedWords(`chord-breaks:${data.seed}`),
             Promise.all(keys.map(async key => [key, await textSeedWords(`rhythm:${key}`)])),
           ]);
           generate = createEngine(data.seed, {
             voicingKey, toneKey, noiseKey, leftRhythmKey, leftVariationKey, rightVariationKey,
             dynamicsKey, replyDensityKey, pluckRegisterKey, leftPitchKey, rightPitchKey, kickPatternKey, hatPickupKey,
-            breakKey, pluckKeys: Object.fromEntries(pluckEntries),
+            drumFillKey, breakKey, pluckKeys: Object.fromEntries(pluckEntries),
           });
           self.postMessage({ type: 'ready' });
         } else if (data.type === 'seed') {
