@@ -1460,7 +1460,7 @@ function seedValue(seed) {
 const RANDOM_PURPOSE = {
   startingTile:1, experimentTile:2, enemyArea:3, enemyCount:4, enemyWeights:5,
   enemyRemainder:6, enemySplit:8, enemyShape:9, enemyMarks:10,
-  enemyHollows:11, enemySeams:12, previewSeams:13, mergedEnemySeams:14,
+  enemyHollows:11, enemySeams:12, mergedEnemySeams:14,
   fragment:15, potionType:16, potionCarrier:17, potionCells:18, enemySwap:19,
   tileWear:20, growthTile:21, growthCell:22, giftDensity:23, giftShape:24,
   dissolveTexture:25, dissolveCell:26, enemyPull:27,
@@ -2048,8 +2048,8 @@ const gearLanguage=()=>language==='en'?'en':'zh';
 const gearText=key=>GEAR_TEXT[gearLanguage()][key];
 const gearRound=number=>language==='en'?'Round '+number:'第'+number+'场';
 
-function rollPotions(state) {
-  const {round,seed}=state;
+function rollPotions(state,round=state.round) {
+  const {seed}=state;
   if (round<2||round>=ROUNDS) return [];
   const oddRound=round%2!==0;
   if (oddRound&&(state.gameMode!=='advanced'||round<13)) return [];
@@ -3198,11 +3198,11 @@ const ENEMY_OPEN_SEAM_CHANCE = .18;
 
 const solidEnemyCell=(piece,id)=>(piece.marks?.[id]??'normal')==='normal';
 
-function rollEnemySeams(piece,state,{round=state.round,preview=false,potionSerial}={}) {
-  const purpose=potionSerial!==undefined?'mergedEnemySeams':preview?'previewSeams':'enemySeams';
+function rollEnemySeams(piece,state,{round=state.round,potionSerial}={}) {
+  const purpose=potionSerial!==undefined?'mergedEnemySeams':'enemySeams';
   const rng=generator(state.seed,round,purpose,potionSerial??piece.slot);
   const chance=state.gameMode==='standard'?STANDARD_ENEMY_OPEN_SEAM_CHANCE:ENEMY_OPEN_SEAM_CHANCE;
-  const occupied=new Set(piece.cells.map(cell=>key(...cell)).filter(id=>preview||solidEnemyCell(piece,id)));
+  const occupied=new Set(piece.cells.map(cell=>key(...cell)).filter(id=>solidEnemyCell(piece,id)));
   const seams=[];
   for (const [x,y] of piece.cells) {
     if (!occupied.has(key(x,y))) continue;
@@ -3463,7 +3463,8 @@ function startBattle(run,enemies=structuredClone(enemyCards(run))) {
   delete run.nextEnemyPulls;
   delete run.damageHalvings;
   run.temporarilyChangedCards=new Set();
-  run.pieces=[...battleCards(run),...makeTray(enemies,'enemy')];
+  const enemyPieces=makeTray(enemies,'enemy');
+  run.pieces=[...battleCards(run),...enemyPieces];
   run.sealNext=new Set();
   run.eatenNext=new Map();
   run.retainedEdges=run.keepEdges??[];
@@ -3476,9 +3477,13 @@ function startBattle(run,enemies=structuredClone(enemyCards(run))) {
     // Leave enough life to try effects that carry into the next battle.
     run.hp=HP+enemies.reduce((total,enemy)=>total+enemy.cells.length,0);
   }
-  const drops=rollPotions(run);
+  placeEnemyPickups(run,enemyPieces);
+}
+
+function placeEnemyPickups(state,enemies,round=state.round) {
+  const drops=rollPotions(state,round);
   if (!drops.length) return;
-  const carriers=run.pieces.filter(piece=>piece.kind==='enemy').map(piece=>{
+  const carriers=enemies.map(piece=>{
     if (piece.pickups) piece.pickups=new Map(piece.pickups);
     const silhouette=new Set(potionSolidify(piece.cells.map(([x,y])=>({x,y})),false).map(({x,y})=>key(x,y)));
     const cells=piece.cells.filter(([x,y])=>piece.marks?.[key(x,y)]!=='hollow'&&!piece.pickups?.has(key(x,y))&&
@@ -3487,10 +3492,10 @@ function startBattle(run,enemies=structuredClone(enemyCards(run))) {
   }).filter(carrier=>carrier.cells.length);
   for (const [index,type] of drops.entries()) {
     if (!carriers.length) break;
-    const carrierRng=generator(run.seed,run.round,'potionCarrier',index);
+    const carrierRng=generator(state.seed,round,'potionCarrier',index);
     const carrierIndex=rangeInt(0,carriers.length-1,carrierRng);
     const carrier=carriers[carrierIndex];
-    const rng=carrier.rng??=generator(run.seed,run.round,'potionCells',carrier.piece.slot);
+    const rng=carrier.rng??=generator(state.seed,round,'potionCells',carrier.piece.slot);
     const [cell]=carrier.cells.splice(rangeInt(0,carrier.cells.length-1,rng),1);
     carrier.piece.pickups??=new Map();
     carrier.piece.pickups.set(key(...cell),type);
@@ -5076,14 +5081,8 @@ function enemyArtwork(enemy,size,state,{round=state.round,known=true,held=false,
   const paint=image.getContext('2d');
   if (scout) paint.translate(Math.ceil((MAX_PIECE_SPAN-w)/2)*size,Math.floor((MAX_PIECE_SPAN-h)/2)*size);
   const rim=hollowBorderPixels(size);
-  const silhouette=known ? cells : enemyGeometry({
-    cells:enemy.cells,
-    marks:Object.fromEntries(Object.entries(enemy.marks??{}).filter(([,type])=>type==='hollow')),
-    pickups:enemy.pickups,
-    openSeams:rollEnemySeams(enemy,state,{round,preview:true})
-  },state,round);
-  for (const {x,y,type,joinedFill} of silhouette) {
-    const ink=enemyPaint[type]??enemyPaint.normal;
+  for (const {x,y,type,joinedFill} of cells) {
+    const ink=known ? enemyPaint[type]??enemyPaint.normal : enemyPaint.normal;
     paint.fillStyle=dragColor(ink[tint]??ink.base,held);
     paint.fillRect(x*size,y*size,size,size);
     if (joinedFill) drawJoinedFill(paint,x,y,size,1,joinedFill,dragColor(joinedEnemyPaint[tint],held));
@@ -5111,9 +5110,16 @@ function drawPickup({x,y,collected}) {
   }
 }
 
+const upcomingEnemyPreviewCache=new WeakMap();
 function upcomingPreviewEnemies() {
   const enemies=nextEncounter();
-  return run.scouted ? enemies : enemies.slice(0,Math.floor(enemies.length/2));
+  let prepared=upcomingEnemyPreviewCache.get(enemies);
+  if (!prepared) {
+    prepared=enemies.map(enemy=>({...enemy}));
+    placeEnemyPickups(run,prepared,run.round+1);
+    upcomingEnemyPreviewCache.set(enemies,prepared);
+  }
+  return run.scouted ? prepared : prepared.slice(0,Math.floor(prepared.length/2));
 }
 function drawUpcomingEnemies() {
   const known=Boolean(run.scouted);
@@ -5126,6 +5132,10 @@ function drawUpcomingEnemies() {
     const {image,cells}=enemyArtwork(enemy,cellPixels,run,{round:run.round+1,known,tint:'outside'});
     ctx.drawImage(image,x*unit,y*unit,image.width/pixelRatio,image.height/pixelRatio);
     for (const cell of cells) boardCursorCells.add(key(x+cell.x,y+cell.y));
+    for (const id of enemy.pickups?.keys()??[]) {
+      const [u,v]=id.split(',').map(Number);
+      drawPickup({x:x+u,y:y+v,collected:false});
+    }
   }
   ctx.restore();
 }
