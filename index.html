@@ -5382,6 +5382,8 @@ function draw(fade=null,partialDrag=false,previewResult=null,dirtyCells=null) {
   }
   if (!showingSettlement) {
     const {absorbed}=current;
+    const heldCard=trackedDrag?.piece.kind==='card' ? trackedDrag.piece : null;
+    let withoutHeldCard=trackedDrag?.emptyPreview??trackedDrag?.withoutHeldCard;
     const ids=dirty&&dirty.size<absorbed.size?dirty:absorbed;
     const other=ids===dirty?absorbed:dirty;
     for (const id of ids) {
@@ -5390,8 +5392,16 @@ function draw(fade=null,partialDrag=false,previewResult=null,dirtyCells=null) {
       const ink=enemyPaint[current.resolvedTypes.get(id)]??enemyPaint.normal;
       drawBattleCell(x,y,resolvedEnemyColor(ink),draggedTypeAt(id),dragLightness,
         battleCellJoinedFill(current,id),resolvedEnemyColor(joinedEnemyPaint));
+      let needsHeldCard=false;
+      if (heldCard&&hitSolid(heldCard,x,y)) {
+        if (!withoutHeldCard) {
+          withoutHeldCard=settlement(boardRun,true,[],cardCoverings(boardRun,heldCard),undefined,{includeEdges:false});
+          trackedDrag.withoutHeldCard=withoutHeldCard;
+        }
+        needsHeldCard=uncoveredBattleCount(withoutHeldCard,id)!==undefined;
+      }
       ctx.fillStyle='#d0d0d0';
-      drawMark(x,y,2/pixelRatio);
+      drawMark(x,y,(needsHeldCard?4:2)/pixelRatio);
     }
   }
   const devicePixel=1/pixelRatio;
@@ -5591,6 +5601,7 @@ function refresh({placement,announceRecord=false,previewResult=null,dirtyCells=n
     drag.fixedEnemyLayout=null;
     drag.previewCells=null;
     drag.emptyPreview=null;
+    drag.withoutHeldCard=null;
     drag.terrain=null;
     drag.joinEligibility=null;
     drag.heldStyleSteps=null;
